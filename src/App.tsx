@@ -12,7 +12,9 @@ const defaultSettings: ViewerSettings = {
   userAnimation: "fade",
   copilotAnimation: "typewriter",
   toolAnimation: "shimmer",
-  typingSpeed: 120,
+  typingSpeed: 180,
+  shimmerDuration: 900,
+  fadeDuration: 240,
   autoAdvanceDelay: 900,
   theme: "system",
 };
@@ -20,7 +22,21 @@ const defaultSettings: ViewerSettings = {
 function loadSettings(): ViewerSettings {
   try {
     const stored = localStorage.getItem(SETTINGS_KEY);
-    return stored ? { ...defaultSettings, ...JSON.parse(stored) } : defaultSettings;
+    if (!stored) {
+      return defaultSettings;
+    }
+
+    const storedSettings = JSON.parse(stored) as Partial<ViewerSettings>;
+    const usesPreviousTypingDefault =
+      !Object.hasOwn(storedSettings, "shimmerDuration") && storedSettings.typingSpeed === 120;
+
+    return {
+      ...defaultSettings,
+      ...storedSettings,
+      typingSpeed: usesPreviousTypingDefault
+        ? defaultSettings.typingSpeed
+        : (storedSettings.typingSpeed ?? defaultSettings.typingSpeed),
+    };
   } catch (error) {
     console.warn("Replay settings could not be loaded.", error);
     return defaultSettings;

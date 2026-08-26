@@ -22,6 +22,7 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type CSSProperties,
 } from "react";
 import { createPlaybackSteps } from "../parser";
 import type {
@@ -48,6 +49,11 @@ interface ActiveAnimation {
   visibleChars: number;
   totalChars: number;
 }
+
+type ReplayTimingStyle = CSSProperties & {
+  "--cp-shimmer-duration": string;
+  "--cp-fade-duration": string;
+};
 
 function lastEventId(step?: PlaybackStep): string | undefined {
   if (!step) {
@@ -393,9 +399,13 @@ export function ReplayView({
   const visibleSteps = steps.slice(0, cursor);
   const latestStep = visibleSteps.at(-1);
   const progress = steps.length ? Math.round((cursor / steps.length) * 100) : 0;
+  const replayTimingStyle: ReplayTimingStyle = {
+    "--cp-shimmer-duration": `${settings.shimmerDuration}ms`,
+    "--cp-fade-duration": `${settings.fadeDuration}ms`,
+  };
 
   return (
-    <div className="replay-page">
+    <div className="replay-page" style={replayTimingStyle}>
       <header className="app-header replay-header">
         <a className="brand" href="./" aria-label="Copilot Chat Replay home">
           <span className="brand-mark" aria-hidden="true">

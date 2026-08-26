@@ -65,6 +65,8 @@ export interface ViewerSettings {
   copilotAnimation: AnimationMode;
   toolAnimation: ToolAnimationMode;
   typingSpeed: number;
+  shimmerDuration: number;
+  fadeDuration: number;
   autoAdvanceDelay: number;
   theme: ThemePreference;
 }

@@ -731,7 +731,7 @@ a {
 }
 
 .fade-entry {
-  animation: fade-entry 240ms ease-out both;
+  animation: fade-entry var(--cp-fade-duration, 240ms) ease-out both;
 }
 
 @keyframes fade-entry {
@@ -774,7 +774,7 @@ a {
   mask-position: 100% 0;
   -webkit-mask-size: 200% 100%;
   mask-size: 200% 100%;
-  animation: tool-shimmer-in 900ms ease-out both;
+  animation: tool-shimmer-in var(--cp-shimmer-duration, 900ms) ease-out both;
 }
 
 @keyframes tool-shimmer-in {
@@ -1150,6 +1150,10 @@ input[type="range"] {
   color: var(--cp-text-muted);
   font-family: Consolas, "Courier New", Courier, monospace;
   font-size: 10px;
+}
+
+.speed-range {
+  direction: rtl;
 }
 
 .theme-options {

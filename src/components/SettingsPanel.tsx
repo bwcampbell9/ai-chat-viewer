@@ -41,6 +41,11 @@ export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProp
 
   const usesTypewriter =
     settings.userAnimation === "typewriter" || settings.copilotAnimation === "typewriter";
+  const usesShimmer = settings.toolAnimation === "shimmer";
+  const usesFade =
+    settings.userAnimation === "fade" ||
+    settings.copilotAnimation === "fade" ||
+    settings.toolAnimation === "fade";
 
   return (
     <div className="settings-layer" role="presentation" onMouseDown={onClose}>
@@ -148,6 +153,40 @@ export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProp
                 disabled={!usesTypewriter}
                 value={settings.typingSpeed}
                 onChange={(event) => patchSettings({ typingSpeed: Number(event.target.value) })}
+              />
+            </label>
+            <label className={`range-setting ${usesShimmer ? "" : "disabled"}`}>
+              <span>
+                <strong>Shimmer speed</strong>
+                <output>{(settings.shimmerDuration / 1000).toFixed(1)} sec</output>
+              </span>
+              <input
+                className="speed-range"
+                type="range"
+                min="300"
+                max="2000"
+                step="100"
+                disabled={!usesShimmer}
+                value={settings.shimmerDuration}
+                onChange={(event) =>
+                  patchSettings({ shimmerDuration: Number(event.target.value) })
+                }
+              />
+            </label>
+            <label className={`range-setting ${usesFade ? "" : "disabled"}`}>
+              <span>
+                <strong>Fade-in speed</strong>
+                <output>{(settings.fadeDuration / 1000).toFixed(2)} sec</output>
+              </span>
+              <input
+                className="speed-range"
+                type="range"
+                min="100"
+                max="1000"
+                step="20"
+                disabled={!usesFade}
+                value={settings.fadeDuration}
+                onChange={(event) => patchSettings({ fadeDuration: Number(event.target.value) })}
               />
             </label>
           </section>

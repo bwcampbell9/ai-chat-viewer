@@ -430,6 +430,7 @@ a {
 
 .replay-header {
   flex: 0 0 auto;
+  background: var(--cp-user-message-bg);
   border-bottom-color: var(--cp-border-strong);
 }
 

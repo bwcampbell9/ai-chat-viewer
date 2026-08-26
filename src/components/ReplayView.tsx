@@ -102,6 +102,10 @@ function toolAnimationClass(isLatest: boolean, animation: ToolAnimationMode): st
   return animation === "fade" ? "fade-entry" : "";
 }
 
+function messageAnimationClass(isLatest: boolean, animation: AnimationMode): string {
+  return isLatest && animation === "fade" ? "fade-entry" : "";
+}
+
 function statusClass(status: string): string {
   const normalized = status.toLowerCase();
   if (normalized.includes("fail") || normalized.includes("error")) {
@@ -226,38 +230,55 @@ function SkillEntry({
 function AskUserEntry({
   event,
   answered,
+  questionContent,
   animation,
   isLatest,
+  isTyping,
 }: {
   event: AskUserEvent;
   answered: boolean;
-  animation: ToolAnimationMode;
+  questionContent: string;
+  animation: AnimationMode;
   isLatest: boolean;
+  isTyping: boolean;
 }) {
   const selectedChoice =
     answered && event.answer
       ? event.choices.find((choice) => choice === event.answer)
       : undefined;
+  const freeformAnswer =
+    event.answer && !event.choices.includes(event.answer) ? event.answer : undefined;
+  const animationClass = answered ? "" : messageAnimationClass(isLatest, animation);
 
   return (
     <article
-      className={`ask-user-entry ${toolAnimationClass(isLatest, animation)}`.trim()}
+      className={`ask-user-entry ${answered ? "answered" : ""} ${animationClass}`.trim()}
       aria-label={answered ? "Question answered" : "Question"}
     >
       <div className="ask-user-label">
         <CircleHelp size={15} />
-        <span>{answered ? "Answer recorded" : "Question"}</span>
+        <span className="ask-user-state-label">
+          <span className={answered ? "" : "active"} aria-hidden={answered}>
+            Question
+          </span>
+          <span className={answered ? "active" : ""} aria-hidden={!answered}>
+            Answer recorded
+          </span>
+        </span>
         <span className="message-time">{event.elapsedLabel}</span>
       </div>
       <div className="ask-user-card">
-        <MarkdownContent content={event.question} className="ask-user-question" />
+        <div className="ask-user-question-content">
+          <MarkdownContent content={questionContent} className="ask-user-question" />
+          {isTyping ? <span className="typing-cursor" aria-hidden="true" /> : null}
+        </div>
         {event.choices.length ? (
           <div className="answer-options" role="list" aria-label="Response options">
-            {event.choices.map((choice) => {
+            {event.choices.map((choice, index) => {
               const selected = choice === selectedChoice;
               return (
                 <div
-                  key={choice}
+                  key={`${index}:${choice}`}
                   className={`answer-option ${selected ? "selected" : ""}`.trim()}
                   role="listitem"
                 >
@@ -265,7 +286,9 @@ function AskUserEntry({
                     {selected ? <Check size={12} /> : <Circle size={12} />}
                   </span>
                   <span>{choice}</span>
-                  {selected ? <span className="answer-option-state">Selected</span> : null}
+                  <span className="answer-option-state" aria-hidden={!selected}>
+                    Selected
+                  </span>
                 </div>
               );
             })}
@@ -273,10 +296,10 @@ function AskUserEntry({
         ) : !answered ? (
           <div className="freeform-prompt">Free-form response</div>
         ) : null}
-        {answered && event.answer && !selectedChoice ? (
+        {answered && freeformAnswer ? (
           <div className="freeform-answer">
             <span>Free-form answer</span>
-            <strong>{event.answer}</strong>
+            <strong>{freeformAnswer}</strong>
           </div>
         ) : null}
       </div>
@@ -298,7 +321,7 @@ function MessageEntry({
   isTyping: boolean;
 }) {
   const { event } = step;
-  const animationClass = isLatest && animation === "fade" ? "fade-entry" : "";
+  const animationClass = messageAnimationClass(isLatest, animation);
 
   if (event.role === "user") {
     return (
@@ -464,6 +487,16 @@ export function ReplayView({
           totalChars: step.event.rawContent.length,
         });
       }
+    } else if (
+      step.kind === "question" &&
+      settings.userAnimation === "typewriter" &&
+      step.event.question
+    ) {
+      setActiveAnimation({
+        stepId: step.id,
+        visibleChars: 0,
+        totalChars: step.event.question.length,
+      });
     }
   }, [
     cursor,
@@ -738,13 +771,19 @@ export function ReplayView({
                 if (answeredQuestionIds.has(step.event.id)) {
                   return null;
                 }
+                const isTyping = activeAnimation?.stepId === step.id;
+                const questionContent = isTyping
+                  ? step.event.question.slice(0, activeAnimation.visibleChars)
+                  : step.event.question;
                 return (
                   <AskUserEntry
-                    key={step.id}
+                    key={`ask-user-${step.event.id}`}
                     event={step.event}
                     answered={false}
-                    animation={settings.toolAnimation}
+                    questionContent={questionContent}
+                    animation={settings.userAnimation}
                     isLatest={latestStep?.id === step.id}
+                    isTyping={isTyping}
                   />
                 );
               }
@@ -752,11 +791,13 @@ export function ReplayView({
               if (step.kind === "answer") {
                 return (
                   <AskUserEntry
-                    key={step.id}
+                    key={`ask-user-${step.event.id}`}
                     event={step.event}
                     answered
-                    animation={settings.toolAnimation}
+                    questionContent={step.event.question}
+                    animation={settings.userAnimation}
                     isLatest={latestStep?.id === step.id}
+                    isTyping={false}
                   />
                 );
               }

@@ -35,6 +35,7 @@ import {
   durationForSpeed,
 } from "../settings";
 import type {
+  AiResponseAutoplayMode,
   AnimationMode,
   PlaybackStep,
   ToolEvent,
@@ -60,6 +61,7 @@ interface ActiveAnimation {
 }
 
 type PlaybackMode = "stopped" | "all" | "ai-responses";
+type RevealSource = "manual" | "automatic";
 
 type ReplayTimingStyle = CSSProperties & {
   "--cp-shimmer-duration": string;
@@ -71,6 +73,18 @@ function lastEventIndex(step?: PlaybackStep): number | undefined {
     return undefined;
   }
   return step.kind === "message" ? step.event.index : step.events.at(-1)?.index;
+}
+
+function isUserStep(step?: PlaybackStep): boolean {
+  return step?.kind === "message" && step.event.role === "user";
+}
+
+function pausesBeforeUser(mode: AiResponseAutoplayMode): boolean {
+  return mode === "before-user" || mode === "before-and-after";
+}
+
+function pausesAfterUser(mode: AiResponseAutoplayMode): boolean {
+  return mode === "after-user" || mode === "before-and-after";
 }
 
 function statusClass(status: string): string {
@@ -306,24 +320,40 @@ export function ReplayView({
     });
   }, [activeAnimation?.visibleChars, cursor]);
 
-  const revealNext = useCallback(() => {
+  const revealNext = useCallback((source: RevealSource) => {
     if (cursor >= steps.length) {
       setPlaybackMode("stopped");
       return;
     }
 
     const step = steps[cursor];
+    const previousStep = steps[cursor - 1];
+    const autoplayMode = settings.aiResponseAutoplay;
     setCursor((current) => current + 1);
 
-    if (step.kind === "message") {
-      if (
-        step.event.role === "user" &&
-        settings.autoPlayAiResponses &&
-        playbackMode !== "all"
+    if (
+      playbackMode === "ai-responses" &&
+      isUserStep(step) &&
+      pausesAfterUser(autoplayMode)
+    ) {
+      setPlaybackMode("stopped");
+    } else if (
+      source === "manual" &&
+      playbackMode !== "all" &&
+      autoplayMode !== "off"
+    ) {
+      if (isUserStep(step) && !pausesAfterUser(autoplayMode)) {
+        setPlaybackMode("ai-responses");
+      } else if (
+        !isUserStep(step) &&
+        playbackMode === "stopped" &&
+        isUserStep(previousStep)
       ) {
         setPlaybackMode("ai-responses");
       }
+    }
 
+    if (step.kind === "message") {
       const mode =
         step.event.role === "user" ? settings.userAnimation : settings.copilotAnimation;
       if (mode === "typewriter" && step.event.rawContent) {
@@ -337,7 +367,7 @@ export function ReplayView({
   }, [
     cursor,
     playbackMode,
-    settings.autoPlayAiResponses,
+    settings.aiResponseAutoplay,
     settings.copilotAnimation,
     settings.userAnimation,
     steps,
@@ -348,7 +378,7 @@ export function ReplayView({
       setActiveAnimation(null);
       return;
     }
-    revealNext();
+    revealNext("manual");
   }, [activeAnimation, revealNext]);
 
   const previous = useCallback(() => {
@@ -390,21 +420,24 @@ export function ReplayView({
     const nextStep = steps[cursor];
     if (
       playbackMode === "ai-responses" &&
-      (!settings.autoPlayAiResponses ||
-        (nextStep.kind === "message" && nextStep.event.role === "user"))
+      (settings.aiResponseAutoplay === "off" ||
+        (isUserStep(nextStep) && pausesBeforeUser(settings.aiResponseAutoplay)))
     ) {
       setPlaybackMode("stopped");
       return;
     }
 
-    const timer = window.setTimeout(revealNext, cursor === 0 ? 250 : settings.autoAdvanceDelay);
+    const timer = window.setTimeout(
+      () => revealNext("automatic"),
+      cursor === 0 ? 250 : settings.autoAdvanceDelay,
+    );
     return () => window.clearTimeout(timer);
   }, [
     activeAnimation,
     cursor,
     playbackMode,
     revealNext,
-    settings.autoPlayAiResponses,
+    settings.aiResponseAutoplay,
     settings.autoAdvanceDelay,
     steps,
   ]);

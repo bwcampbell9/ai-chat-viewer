@@ -2,6 +2,11 @@ export type MessageRole = "user" | "copilot";
 export type AnimationMode = "none" | "fade" | "typewriter";
 export type ToolAnimationMode = "none" | "fade" | "shimmer";
 export type ThemePreference = "system" | "light" | "dark";
+export type AiResponseAutoplayMode =
+  | "off"
+  | "before-user"
+  | "after-user"
+  | "before-and-after";
 
 export interface TranscriptMetadata {
   sessionId?: string;
@@ -68,7 +73,7 @@ export interface ViewerSettings {
   typingSpeed: number;
   shimmerSpeed: number;
   fadeSpeed: number;
-  autoPlayAiResponses: boolean;
+  aiResponseAutoplay: AiResponseAutoplayMode;
   autoAdvanceDelay: number;
   theme: ThemePreference;
 }

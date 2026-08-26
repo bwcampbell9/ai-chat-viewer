@@ -21,7 +21,7 @@ const defaultSettings: ViewerSettings = {
   typingSpeed: 180,
   shimmerSpeed: 1,
   fadeSpeed: 1,
-  autoPlayAiResponses: false,
+  aiResponseAutoplay: "off",
   autoAdvanceDelay: 900,
   theme: "system",
 };
@@ -29,6 +29,7 @@ const defaultSettings: ViewerSettings = {
 type StoredViewerSettings = Partial<ViewerSettings> & {
   shimmerDuration?: number;
   fadeDuration?: number;
+  autoPlayAiResponses?: boolean;
 };
 
 function loadSettings(): ViewerSettings {
@@ -44,6 +45,7 @@ function loadSettings(): ViewerSettings {
       !Object.hasOwn(storedSettings, "shimmerSpeed") &&
       storedSettings.typingSpeed === 120;
     const {
+      autoPlayAiResponses,
       fadeDuration,
       shimmerDuration,
       ...currentSettings
@@ -62,6 +64,9 @@ function loadSettings(): ViewerSettings {
       ...currentSettings,
       shimmerSpeed,
       fadeSpeed,
+      aiResponseAutoplay:
+        currentSettings.aiResponseAutoplay ??
+        (autoPlayAiResponses ? "before-user" : defaultSettings.aiResponseAutoplay),
       typingSpeed: usesPreviousTypingDefault
         ? defaultSettings.typingSpeed
         : (currentSettings.typingSpeed ?? defaultSettings.typingSpeed),

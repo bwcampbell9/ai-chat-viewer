@@ -1,6 +1,7 @@
 import { Gauge, Moon, Monitor, Settings2, Sun, X } from "lucide-react";
 import { MAX_ANIMATION_SPEED, MIN_ANIMATION_SPEED } from "../settings";
 import type {
+  AiResponseAutoplayMode,
   AnimationMode,
   ThemePreference,
   ToolAnimationMode,
@@ -23,6 +24,16 @@ const toolAnimationOptions: Array<{ value: ToolAnimationMode; label: string }> =
   { value: "shimmer", label: "Shimmer" },
   { value: "fade", label: "Fade in" },
   { value: "none", label: "Instant" },
+];
+
+const aiResponseAutoplayOptions: Array<{
+  value: AiResponseAutoplayMode;
+  label: string;
+}> = [
+  { value: "off", label: "Off" },
+  { value: "before-user", label: "Pause before user messages" },
+  { value: "after-user", label: "Pause after user messages" },
+  { value: "before-and-after", label: "Pause before and after" },
 ];
 
 const themeOptions: Array<{
@@ -210,25 +221,25 @@ export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProp
           <section className="setting-section">
             <div className="setting-heading">
               <span>Autoplay</span>
-              <small>Control automatic playback and timing.</small>
+              <small>Choose where playback pauses around user messages.</small>
             </div>
-            <label className="switch-row">
-              <span>
-                <strong>Autoplay AI responses</strong>
-                <small>After a user message, continue until the next one.</small>
-              </span>
-              <button
-                className={`switch ${settings.autoPlayAiResponses ? "on" : ""}`}
-                type="button"
-                role="switch"
+            <label className="select-row">
+              <span>AI responses</span>
+              <select
                 aria-label="Autoplay AI responses"
-                aria-checked={settings.autoPlayAiResponses}
-                onClick={() =>
-                  patchSettings({ autoPlayAiResponses: !settings.autoPlayAiResponses })
+                value={settings.aiResponseAutoplay}
+                onChange={(event) =>
+                  patchSettings({
+                    aiResponseAutoplay: event.target.value as AiResponseAutoplayMode,
+                  })
                 }
               >
-                <span />
-              </button>
+                {aiResponseAutoplayOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="range-setting">
               <span>
@@ -237,7 +248,7 @@ export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProp
               </span>
               <input
                 type="range"
-                min="300"
+                min="0"
                 max="3000"
                 step="100"
                 value={settings.autoAdvanceDelay}

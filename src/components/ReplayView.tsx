@@ -985,7 +985,7 @@ export function ReplayView({
                 </button>
               </div>
               <span className="keyboard-hint">
-                ← previous · space autoplay · next → · R reset · M chrome
+                ← previous · space autoplay · next → · R reset · M full screen
               </span>
             </div>
           )}

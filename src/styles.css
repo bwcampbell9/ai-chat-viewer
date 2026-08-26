@@ -9,13 +9,20 @@
   --cp-app-accent: color-mix(in srgb, var(--cp-link) 68%, var(--cp-accent));
   --cp-app-accent-hover: color-mix(in srgb, var(--cp-link) 78%, var(--cp-accent));
   --cp-app-accent-soft: color-mix(in srgb, var(--cp-link) 10%, var(--cp-surface));
+  --cp-header-inline-padding: 16px;
+  --cp-user-message-bg: var(--cp-surface-soft);
 }
 
 html[data-theme="dark"] {
-  --cp-app-bg: color-mix(in srgb, var(--cp-accent-fg) 88%, var(--cp-link));
+  --cp-app-bg: rgb(
+    from var(--cp-accent-fg) calc(r - 1) calc(g + 9) calc(b + 22)
+  );
   --cp-app-surface: color-mix(in srgb, var(--cp-accent-fg) 82%, var(--cp-link));
   --cp-app-surface-soft: color-mix(in srgb, var(--cp-accent-fg) 76%, var(--cp-link));
   --cp-app-accent-soft: color-mix(in srgb, var(--cp-link) 14%, var(--cp-surface));
+  --cp-user-message-bg: rgb(
+    from var(--cp-accent-fg) calc(r + 9) calc(g + 19) calc(b + 31)
+  );
 }
 
 html {
@@ -91,7 +98,7 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 0 16px;
+  padding: 0 var(--cp-header-inline-padding);
   background: var(--cp-app-surface);
   border-bottom: 1px solid var(--cp-border);
 }
@@ -423,6 +430,7 @@ a {
 
 .replay-header {
   flex: 0 0 auto;
+  border-bottom-color: var(--cp-border-strong);
 }
 
 .header-actions {
@@ -576,8 +584,8 @@ a {
 .user-message {
   width: min(76%, 760px);
   padding: 12px 14px 8px;
-  background: var(--cp-app-surface-soft);
-  border: 1px solid var(--cp-border);
+  background: var(--cp-user-message-bg);
+  border: 0;
   border-radius: 16px;
 }
 
@@ -947,8 +955,8 @@ a {
 .show-header-toggle {
   position: fixed;
   z-index: 12;
-  top: 9px;
-  left: 9px;
+  top: 8.5px;
+  right: var(--cp-header-inline-padding);
 }
 
 .collapse-controls-button {
@@ -1223,9 +1231,12 @@ input[type="range"] {
 }
 
 @media (max-width: 760px) {
+  :root {
+    --cp-header-inline-padding: 14px;
+  }
+
   .app-header {
     min-height: 48px;
-    padding: 0 14px;
   }
 
   .brand {

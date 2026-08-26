@@ -11,6 +11,7 @@ const defaultSettings: ViewerSettings = {
   collapseTools: true,
   userAnimation: "fade",
   copilotAnimation: "typewriter",
+  toolAnimation: "shimmer",
   typingSpeed: 120,
   autoAdvanceDelay: 900,
   theme: "system",

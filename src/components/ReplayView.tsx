@@ -28,6 +28,7 @@ import type {
   AnimationMode,
   PlaybackStep,
   ToolEvent,
+  ToolAnimationMode,
   ToolPayload,
   Transcript,
   ViewerSettings,
@@ -115,15 +116,32 @@ function ToolCall({ event }: { event: ToolEvent }) {
   );
 }
 
-function ToolGroup({ events }: { events: ToolEvent[] }) {
+function ToolGroup({
+  events,
+  animation,
+  isLatest,
+}: {
+  events: ToolEvent[];
+  animation: ToolAnimationMode;
+  isLatest: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const names = [...new Set(events.map((event) => event.name))];
   const failures = events.filter((event) => statusClass(event.status) === "failed").length;
   const summary =
     events.length === 1 ? `${events[0].name} called` : `${events.length} tools called`;
+  const animationClass =
+    isLatest && animation === "shimmer"
+      ? "shimmer-entry"
+      : isLatest && animation === "fade"
+        ? "fade-entry"
+        : "";
 
   return (
-    <details className="tool-group" onToggle={(toggleEvent) => setOpen(toggleEvent.currentTarget.open)}>
+    <details
+      className={`tool-group ${animationClass}`.trim()}
+      onToggle={(toggleEvent) => setOpen(toggleEvent.currentTarget.open)}
+    >
       <summary>
         <span className={`activity-icon ${failures ? "failed" : "completed"}`}>
           {events.length === 1 ? <Terminal size={15} /> : <Wrench size={15} />}
@@ -458,7 +476,14 @@ export function ReplayView({
 
             {visibleSteps.map((step) => {
               if (step.kind === "tools") {
-                return <ToolGroup key={step.id} events={step.events} />;
+                return (
+                  <ToolGroup
+                    key={step.id}
+                    events={step.events}
+                    animation={settings.toolAnimation}
+                    isLatest={latestStep?.id === step.id}
+                  />
+                );
               }
 
               const isTyping = activeAnimation?.stepId === step.id;

@@ -1,5 +1,6 @@
 export type MessageRole = "user" | "copilot";
 export type AnimationMode = "none" | "fade" | "typewriter";
+export type ToolAnimationMode = "none" | "fade" | "shimmer";
 export type ThemePreference = "system" | "light" | "dark";
 
 export interface TranscriptMetadata {
@@ -62,6 +63,7 @@ export interface ViewerSettings {
   collapseTools: boolean;
   userAnimation: AnimationMode;
   copilotAnimation: AnimationMode;
+  toolAnimation: ToolAnimationMode;
   typingSpeed: number;
   autoAdvanceDelay: number;
   theme: ThemePreference;

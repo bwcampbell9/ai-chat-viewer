@@ -1,5 +1,10 @@
 import { Gauge, Moon, Monitor, Settings2, Sun, X } from "lucide-react";
-import type { AnimationMode, ThemePreference, ViewerSettings } from "../types";
+import type {
+  AnimationMode,
+  ThemePreference,
+  ToolAnimationMode,
+  ViewerSettings,
+} from "../types";
 
 interface SettingsPanelProps {
   settings: ViewerSettings;
@@ -9,6 +14,12 @@ interface SettingsPanelProps {
 
 const animationOptions: Array<{ value: AnimationMode; label: string }> = [
   { value: "typewriter", label: "Typewriter" },
+  { value: "fade", label: "Fade in" },
+  { value: "none", label: "Instant" },
+];
+
+const toolAnimationOptions: Array<{ value: ToolAnimationMode; label: string }> = [
+  { value: "shimmer", label: "Shimmer" },
   { value: "fade", label: "Fade in" },
   { value: "none", label: "Instant" },
 ];
@@ -100,6 +111,21 @@ export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProp
                 }
               >
                 {animationOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="select-row">
+              <span>Tool calls</span>
+              <select
+                value={settings.toolAnimation}
+                onChange={(event) =>
+                  patchSettings({ toolAnimation: event.target.value as ToolAnimationMode })
+                }
+              >
+                {toolAnimationOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>

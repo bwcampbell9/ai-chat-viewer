@@ -746,8 +746,53 @@ a {
 }
 
 .tool-group {
+  position: relative;
   margin: 14px 0;
   border-radius: 0.625rem;
+}
+
+.tool-group.shimmer-entry {
+  overflow: hidden;
+}
+
+.tool-group.shimmer-entry::after {
+  position: absolute;
+  z-index: 1;
+  inset: 0 auto 0 0;
+  width: 40%;
+  pointer-events: none;
+  content: "";
+  background: var(--cp-highlight);
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    var(--cp-accent-soft),
+    var(--cp-panel-strong),
+    var(--cp-accent-soft)
+  );
+  mask-image: linear-gradient(
+    90deg,
+    var(--cp-accent-soft),
+    var(--cp-panel-strong),
+    var(--cp-accent-soft)
+  );
+  animation: tool-shimmer 900ms ease-in-out both;
+}
+
+@keyframes tool-shimmer {
+  from {
+    transform: translateX(-110%);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  82% {
+    opacity: 1;
+  }
+  to {
+    transform: translateX(260%);
+    opacity: 0;
+  }
 }
 
 .tool-group > summary,

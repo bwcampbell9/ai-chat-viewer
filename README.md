@@ -11,7 +11,7 @@ demos.
 - Step forward and backward through known user, Copilot, and tool-call output.
 - Auto-play a session without waiting for model inference.
 - Group consecutive tool calls into a compact `X tools called` activity.
-- Configure user and Copilot animations independently.
+- Configure user, Copilot, and tool-call animations independently.
 - Expand individual tool arguments and results only when needed.
 - Keep transcript content in the current browser tab; no backend or upload service is used.
 

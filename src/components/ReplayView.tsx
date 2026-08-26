@@ -80,8 +80,28 @@ function lastEventIndex(step?: PlaybackStep): number | undefined {
   return step.kind === "tools" ? step.events.at(-1)?.index : step.event.index;
 }
 
-function isUserStep(step?: PlaybackStep): boolean {
-  return step?.kind === "message" && step.event.role === "user";
+function isUserTurnStep(step?: PlaybackStep): boolean {
+  return (
+    step?.kind === "answer" || (step?.kind === "message" && step.event.role === "user")
+  );
+}
+
+function hasCssStepAnimation(step: PlaybackStep, settings: ViewerSettings): boolean {
+  if (step.kind === "tools" || step.kind === "skill") {
+    return settings.toolAnimation !== "none";
+  }
+  if (step.kind === "question") {
+    return settings.userAnimation === "fade";
+  }
+  if (step.kind === "answer") {
+    return true;
+  }
+  if (step.kind === "message") {
+    const animation =
+      step.event.role === "user" ? settings.userAnimation : settings.copilotAnimation;
+    return animation === "fade";
+  }
+  return false;
 }
 
 function pausesBeforeUser(mode: AiResponseAutoplayMode): boolean {
@@ -379,6 +399,7 @@ export function ReplayView({
   const [headerCollapsed, setHeaderCollapsed] = useState(false);
   const [controlsCollapsed, setControlsCollapsed] = useState(false);
   const [activeAnimation, setActiveAnimation] = useState<ActiveAnimation | null>(null);
+  const [pendingVisualAnimation, setPendingVisualAnimation] = useState<string | null>(null);
   const previousStepsRef = useRef(steps);
   const feedEndRef = useRef<HTMLDivElement>(null);
 
@@ -409,6 +430,7 @@ export function ReplayView({
     }
     previousStepsRef.current = steps;
     setActiveAnimation(null);
+    setPendingVisualAnimation(null);
   }, [lastVisibleIndex, lastVisibleStepId, steps]);
 
   useEffect(() => {
@@ -444,9 +466,49 @@ export function ReplayView({
     });
   }, [activeAnimation?.visibleChars, cursor]);
 
+  useEffect(() => {
+    if (!pendingVisualAnimation) {
+      return;
+    }
+
+    let cancelled = false;
+    const clearPendingAnimation = () => {
+      if (!cancelled) {
+        setPendingVisualAnimation((current) =>
+          current === pendingVisualAnimation ? null : current,
+        );
+      }
+    };
+    const frame = window.requestAnimationFrame(() => {
+      const animationRoot = feedEndRef.current?.previousElementSibling;
+      if (!animationRoot) {
+        clearPendingAnimation();
+        return;
+      }
+
+      const animations = animationRoot
+        .getAnimations({ subtree: true })
+        .filter((animation) => animation.playState === "running");
+      if (!animations.length) {
+        clearPendingAnimation();
+        return;
+      }
+
+      void Promise.allSettled(animations.map((animation) => animation.finished)).then(
+        clearPendingAnimation,
+      );
+    });
+
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+    };
+  }, [pendingVisualAnimation]);
+
   const revealNext = useCallback((source: RevealSource) => {
     if (cursor >= steps.length) {
       setPlaybackMode("stopped");
+      setPendingVisualAnimation(null);
       return;
     }
 
@@ -454,10 +516,11 @@ export function ReplayView({
     const previousStep = steps[cursor - 1];
     const autoplayMode = settings.aiResponseAutoplay;
     setCursor((current) => current + 1);
+    setPendingVisualAnimation(hasCssStepAnimation(step, settings) ? step.id : null);
 
     if (
       playbackMode === "ai-responses" &&
-      isUserStep(step) &&
+      isUserTurnStep(step) &&
       pausesAfterUser(autoplayMode)
     ) {
       setPlaybackMode("stopped");
@@ -466,12 +529,12 @@ export function ReplayView({
       playbackMode !== "all" &&
       autoplayMode !== "off"
     ) {
-      if (isUserStep(step) && !pausesAfterUser(autoplayMode)) {
+      if (isUserTurnStep(step) && !pausesAfterUser(autoplayMode)) {
         setPlaybackMode("ai-responses");
       } else if (
-        !isUserStep(step) &&
+        !isUserTurnStep(step) &&
         playbackMode === "stopped" &&
-        isUserStep(previousStep)
+        isUserTurnStep(previousStep)
       ) {
         setPlaybackMode("ai-responses");
       }
@@ -503,6 +566,7 @@ export function ReplayView({
     playbackMode,
     settings.aiResponseAutoplay,
     settings.copilotAnimation,
+    settings.toolAnimation,
     settings.userAnimation,
     steps,
   ]);
@@ -518,12 +582,14 @@ export function ReplayView({
   const previous = useCallback(() => {
     setPlaybackMode("stopped");
     setActiveAnimation(null);
+    setPendingVisualAnimation(null);
     setCursor((current) => Math.max(0, current - 1));
   }, []);
 
   const restart = useCallback(() => {
     setPlaybackMode("stopped");
     setActiveAnimation(null);
+    setPendingVisualAnimation(null);
     setCursor(0);
   }, []);
 
@@ -536,6 +602,7 @@ export function ReplayView({
     if (cursor >= steps.length) {
       setCursor(0);
       setActiveAnimation(null);
+      setPendingVisualAnimation(null);
       setPlaybackMode("all");
       return;
     }
@@ -543,7 +610,7 @@ export function ReplayView({
   }, [cursor, playbackMode, steps.length]);
 
   useEffect(() => {
-    if (playbackMode === "stopped" || activeAnimation) {
+    if (playbackMode === "stopped" || activeAnimation || pendingVisualAnimation) {
       return;
     }
     if (cursor >= steps.length) {
@@ -555,7 +622,7 @@ export function ReplayView({
     if (
       playbackMode === "ai-responses" &&
       (settings.aiResponseAutoplay === "off" ||
-        (isUserStep(nextStep) && pausesBeforeUser(settings.aiResponseAutoplay)))
+        (isUserTurnStep(nextStep) && pausesBeforeUser(settings.aiResponseAutoplay)))
     ) {
       setPlaybackMode("stopped");
       return;
@@ -569,6 +636,7 @@ export function ReplayView({
   }, [
     activeAnimation,
     cursor,
+    pendingVisualAnimation,
     playbackMode,
     revealNext,
     settings.aiResponseAutoplay,
@@ -611,6 +679,7 @@ export function ReplayView({
   const seek = (event: ChangeEvent<HTMLInputElement>) => {
     setPlaybackMode("stopped");
     setActiveAnimation(null);
+    setPendingVisualAnimation(null);
     setCursor(Number(event.target.value));
   };
 

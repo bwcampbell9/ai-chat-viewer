@@ -31,9 +31,9 @@ const aiResponseAutoplayOptions: Array<{
   label: string;
 }> = [
   { value: "off", label: "Off" },
-  { value: "before-user", label: "Pause before user messages" },
-  { value: "after-user", label: "Pause after user messages" },
-  { value: "before-and-after", label: "Pause before and after" },
+  { value: "before-user", label: "Pause before user turns" },
+  { value: "after-user", label: "Pause after user turns" },
+  { value: "before-and-after", label: "Pause before and after user turns" },
 ];
 
 const themeOptions: Array<{
@@ -221,7 +221,7 @@ export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProp
           <section className="setting-section">
             <div className="setting-heading">
               <span>Autoplay</span>
-              <small>Choose where playback pauses around user messages.</small>
+              <small>Pause around user messages and recorded question answers.</small>
             </div>
             <label className="select-row">
               <span>AI responses</span>

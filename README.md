@@ -10,13 +10,20 @@ demos.
 - Upload a session history Markdown file or paste its contents.
 - Step forward and backward through known user, Copilot, and tool-call output.
 - Auto-play a session without waiting for model inference.
-- Group consecutive tool calls into a compact `X tools called` activity.
-- Configure user, Copilot, and tool-call animations and timing independently.
+- Hide tool calls entirely or group consecutive calls into a compact `X tools called` activity.
+- Configure user, Copilot, and tool-call animations with independent typing, shimmer, and fade
+  speeds.
 - Expand individual tool arguments and results only when needed.
+- Collapse the application header and replay controls for a clean presentation view.
 - Keep transcript content in the current browser tab; no backend or upload service is used.
 
 Use <https://bwcampbell9.github.io/ai-chat-viewer/?demo=1> to open the built-in sample
 conversation.
+
+## Replay controls
+
+Use the replay buttons or the keyboard: `←` and `→` move between activities, `Space` toggles
+autoplay, and `R` resets the replay. Keyboard shortcuts are ignored while editing a field.
 
 ## Supported export format
 

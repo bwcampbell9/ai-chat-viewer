@@ -1,4 +1,5 @@
 import { Gauge, Moon, Monitor, Settings2, Sun, X } from "lucide-react";
+import { MAX_ANIMATION_SPEED, MIN_ANIMATION_SPEED } from "../settings";
 import type {
   AnimationMode,
   ThemePreference,
@@ -41,11 +42,11 @@ export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProp
 
   const usesTypewriter =
     settings.userAnimation === "typewriter" || settings.copilotAnimation === "typewriter";
-  const usesShimmer = settings.toolAnimation === "shimmer";
+  const usesShimmer = settings.showTools && settings.toolAnimation === "shimmer";
   const usesFade =
     settings.userAnimation === "fade" ||
     settings.copilotAnimation === "fade" ||
-    settings.toolAnimation === "fade";
+    (settings.showTools && settings.toolAnimation === "fade");
 
   return (
     <div className="settings-layer" role="presentation" onMouseDown={onClose}>
@@ -68,9 +69,24 @@ export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProp
           <section className="setting-section">
             <div className="setting-heading">
               <span>Tool calls</span>
-              <small>Keep long runs compact in the feed.</small>
+              <small>Choose whether tool activity appears in the replay.</small>
             </div>
             <label className="switch-row">
+              <span>
+                <strong>Show tool calls</strong>
+                <small>Include tool activity between chat messages.</small>
+              </span>
+              <button
+                className={`switch ${settings.showTools ? "on" : ""}`}
+                type="button"
+                role="switch"
+                aria-checked={settings.showTools}
+                onClick={() => patchSettings({ showTools: !settings.showTools })}
+              >
+                <span />
+              </button>
+            </label>
+            <label className={`switch-row ${settings.showTools ? "" : "disabled"}`}>
               <span>
                 <strong>Group consecutive calls</strong>
                 <small>Show “X tools called” as one activity.</small>
@@ -79,6 +95,7 @@ export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProp
                 className={`switch ${settings.collapseTools ? "on" : ""}`}
                 type="button"
                 role="switch"
+                disabled={!settings.showTools}
                 aria-checked={settings.collapseTools}
                 onClick={() => patchSettings({ collapseTools: !settings.collapseTools })}
               >
@@ -122,9 +139,10 @@ export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProp
                 ))}
               </select>
             </label>
-            <label className="select-row">
+            <label className={`select-row ${settings.showTools ? "" : "disabled"}`}>
               <span>Tool calls</span>
               <select
+                disabled={!settings.showTools}
                 value={settings.toolAnimation}
                 onChange={(event) =>
                   patchSettings({ toolAnimation: event.target.value as ToolAnimationMode })
@@ -158,35 +176,33 @@ export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProp
             <label className={`range-setting ${usesShimmer ? "" : "disabled"}`}>
               <span>
                 <strong>Shimmer speed</strong>
-                <output>{(settings.shimmerDuration / 1000).toFixed(1)} sec</output>
+                <output>{settings.shimmerSpeed.toFixed(2)}×</output>
               </span>
               <input
-                className="speed-range"
                 type="range"
-                min="300"
-                max="2000"
-                step="100"
+                min={MIN_ANIMATION_SPEED}
+                max={MAX_ANIMATION_SPEED}
+                step="0.05"
                 disabled={!usesShimmer}
-                value={settings.shimmerDuration}
+                value={settings.shimmerSpeed}
                 onChange={(event) =>
-                  patchSettings({ shimmerDuration: Number(event.target.value) })
+                  patchSettings({ shimmerSpeed: Number(event.target.value) })
                 }
               />
             </label>
             <label className={`range-setting ${usesFade ? "" : "disabled"}`}>
               <span>
                 <strong>Fade-in speed</strong>
-                <output>{(settings.fadeDuration / 1000).toFixed(2)} sec</output>
+                <output>{settings.fadeSpeed.toFixed(2)}×</output>
               </span>
               <input
-                className="speed-range"
                 type="range"
-                min="100"
-                max="1000"
-                step="20"
+                min={MIN_ANIMATION_SPEED}
+                max={MAX_ANIMATION_SPEED}
+                step="0.05"
                 disabled={!usesFade}
-                value={settings.fadeDuration}
-                onChange={(event) => patchSettings({ fadeDuration: Number(event.target.value) })}
+                value={settings.fadeSpeed}
+                onChange={(event) => patchSettings({ fadeSpeed: Number(event.target.value) })}
               />
             </label>
           </section>

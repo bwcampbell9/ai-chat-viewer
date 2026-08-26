@@ -5,6 +5,10 @@ import {
   FileText,
   LockKeyhole,
   Pause,
+  PanelBottomClose,
+  PanelBottomOpen,
+  PanelTopClose,
+  PanelTopOpen,
   Play,
   RotateCcw,
   Settings2,
@@ -25,6 +29,11 @@ import {
   type CSSProperties,
 } from "react";
 import { createPlaybackSteps } from "../parser";
+import {
+  BASE_FADE_DURATION,
+  BASE_SHIMMER_DURATION,
+  durationForSpeed,
+} from "../settings";
 import type {
   AnimationMode,
   PlaybackStep,
@@ -55,17 +64,11 @@ type ReplayTimingStyle = CSSProperties & {
   "--cp-fade-duration": string;
 };
 
-function lastEventId(step?: PlaybackStep): string | undefined {
+function lastEventIndex(step?: PlaybackStep): number | undefined {
   if (!step) {
     return undefined;
   }
-  return step.kind === "message" ? step.event.id : step.events.at(-1)?.id;
-}
-
-function containsEvent(step: PlaybackStep, eventId: string): boolean {
-  return step.kind === "message"
-    ? step.event.id === eventId
-    : step.events.some((event) => event.id === eventId);
+  return step.kind === "message" ? step.event.index : step.events.at(-1)?.index;
 }
 
 function statusClass(status: string): string {
@@ -218,9 +221,16 @@ export function ReplayView({
   onSettingsChange,
   onReplaceSession,
 }: ReplayViewProps) {
+  const playbackEvents = useMemo(
+    () =>
+      settings.showTools
+        ? transcript.events
+        : transcript.events.filter((event) => event.kind === "message"),
+    [settings.showTools, transcript.events],
+  );
   const steps = useMemo(
-    () => createPlaybackSteps(transcript.events, settings.collapseTools),
-    [settings.collapseTools, transcript.events],
+    () => createPlaybackSteps(playbackEvents, settings.collapseTools),
+    [playbackEvents, settings.collapseTools],
   );
   const [cursor, setCursor] = useState(() => {
     const requestedStep = Number.parseInt(
@@ -233,6 +243,8 @@ export function ReplayView({
   });
   const [playing, setPlaying] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [headerCollapsed, setHeaderCollapsed] = useState(false);
+  const [controlsCollapsed, setControlsCollapsed] = useState(false);
   const [activeAnimation, setActiveAnimation] = useState<ActiveAnimation | null>(null);
   const previousStepsRef = useRef(steps);
   const feedEndRef = useRef<HTMLDivElement>(null);
@@ -242,20 +254,22 @@ export function ReplayView({
     [transcript.events],
   );
   const turnCount = transcript.events.length - toolCount;
-  const lastVisibleId = lastEventId(previousStepsRef.current[cursor - 1]);
+  const lastVisibleIndex = lastEventIndex(previousStepsRef.current[cursor - 1]);
 
   useEffect(() => {
     if (previousStepsRef.current === steps) {
       return;
     }
 
-    if (lastVisibleId) {
-      const nextCursor = steps.findIndex((step) => containsEvent(step, lastVisibleId));
-      setCursor(nextCursor < 0 ? 0 : nextCursor + 1);
+    if (lastVisibleIndex !== undefined) {
+      const nextCursor = steps.filter(
+        (step) => (lastEventIndex(step) ?? Number.POSITIVE_INFINITY) <= lastVisibleIndex,
+      ).length;
+      setCursor(nextCursor);
     }
     previousStepsRef.current = steps;
     setActiveAnimation(null);
-  }, [lastVisibleId, steps]);
+  }, [lastVisibleIndex, steps]);
 
   useEffect(() => {
     if (!activeAnimation) {
@@ -369,12 +383,21 @@ export function ReplayView({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target?.matches("input, textarea, select, button, summary")) {
+      if (event.altKey || event.ctrlKey || event.metaKey) {
         return;
       }
 
-      if (event.key === "ArrowRight") {
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (target?.matches("input, textarea, select") || target?.isContentEditable) {
+        return;
+      }
+
+      if (event.key.toLowerCase() === "r") {
+        event.preventDefault();
+        restart();
+      } else if (target?.matches("button, summary")) {
+        return;
+      } else if (event.key === "ArrowRight") {
         event.preventDefault();
         next();
       } else if (event.key === "ArrowLeft") {
@@ -388,7 +411,7 @@ export function ReplayView({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [next, previous, togglePlayback]);
+  }, [next, previous, restart, togglePlayback]);
 
   const seek = (event: ChangeEvent<HTMLInputElement>) => {
     setPlaying(false);
@@ -400,38 +423,68 @@ export function ReplayView({
   const latestStep = visibleSteps.at(-1);
   const progress = steps.length ? Math.round((cursor / steps.length) * 100) : 0;
   const replayTimingStyle: ReplayTimingStyle = {
-    "--cp-shimmer-duration": `${settings.shimmerDuration}ms`,
-    "--cp-fade-duration": `${settings.fadeDuration}ms`,
+    "--cp-shimmer-duration": `${durationForSpeed(
+      BASE_SHIMMER_DURATION,
+      settings.shimmerSpeed,
+    )}ms`,
+    "--cp-fade-duration": `${durationForSpeed(BASE_FADE_DURATION, settings.fadeSpeed)}ms`,
   };
 
   return (
     <div className="replay-page" style={replayTimingStyle}>
-      <header className="app-header replay-header">
-        <a className="brand" href="./" aria-label="Copilot Chat Replay home">
-          <span className="brand-mark" aria-hidden="true">
-            <Sparkles size={17} />
-          </span>
-          <span>Copilot Chat Replay</span>
-        </a>
-        <div className="header-actions">
-          <span className="local-badge">
-            <LockKeyhole size={14} />
-            Local only
-          </span>
-          <button className="secondary-button" type="button" onClick={onReplaceSession}>
-            <Upload size={15} />
-            Import
-          </button>
-          <button
-            className="secondary-button settings-button"
-            type="button"
-            onClick={() => setSettingsOpen(true)}
-          >
-            <Settings2 size={15} />
-            Settings
-          </button>
-        </div>
-      </header>
+      {headerCollapsed ? (
+        <button
+          className="icon-button chrome-toggle show-header-toggle"
+          type="button"
+          aria-label="Show application header"
+          title="Show application header"
+          onClick={() => setHeaderCollapsed(false)}
+        >
+          <PanelTopOpen size={16} />
+        </button>
+      ) : (
+        <header className="app-header replay-header">
+          <a className="brand" href="./" aria-label="Copilot Chat Replay home">
+            <span className="brand-mark" aria-hidden="true">
+              <Sparkles size={17} />
+            </span>
+            <span>Copilot Chat Replay</span>
+          </a>
+          <div className="header-actions">
+            <span className="local-badge">
+              <LockKeyhole size={14} />
+              Local only
+            </span>
+            <button
+              className="icon-button"
+              type="button"
+              aria-label="Import another session"
+              title="Import another session"
+              onClick={onReplaceSession}
+            >
+              <Upload size={15} />
+            </button>
+            <button
+              className="icon-button settings-button"
+              type="button"
+              aria-label="Open replay settings"
+              title="Open replay settings"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <Settings2 size={15} />
+            </button>
+            <button
+              className="icon-button chrome-toggle"
+              type="button"
+              aria-label="Hide application header"
+              title="Hide application header"
+              onClick={() => setHeaderCollapsed(true)}
+            >
+              <PanelTopClose size={16} />
+            </button>
+          </div>
+        </header>
+      )}
 
       <main className="replay-main">
         <section className="session-heading" aria-labelledby="session-title">
@@ -442,7 +495,8 @@ export function ReplayView({
             </span>
             <h1 id="session-title">{transcript.title}</h1>
             <p>
-              {turnCount} messages · {toolCount} tool calls
+              {turnCount} messages
+              {settings.showTools ? ` · ${toolCount} tool calls` : " · tool calls hidden"}
               {transcript.metadata.duration ? ` · ${transcript.metadata.duration}` : ""}
             </p>
           </div>
@@ -477,9 +531,14 @@ export function ReplayView({
                 </span>
                 <strong>Ready to replay</strong>
                 <span>Use Start or the right arrow key to reveal the first turn.</span>
-                <button className="primary-button" type="button" onClick={next}>
+                <button
+                  className="icon-button"
+                  type="button"
+                  aria-label="Start replay"
+                  title="Start replay"
+                  onClick={next}
+                >
                   <Play size={16} />
-                  Start replay
                 </button>
               </div>
             ) : null}
@@ -519,55 +578,92 @@ export function ReplayView({
             <div ref={feedEndRef} className="feed-end" />
           </div>
 
-          <div className="playback-bar">
-            <div className="timeline-row">
-              <span>
-                Step {cursor} of {steps.length}
+          {controlsCollapsed ? (
+            <button
+              className="icon-button chrome-toggle show-controls-toggle"
+              type="button"
+              aria-label="Show replay controls"
+              title="Show replay controls"
+              onClick={() => setControlsCollapsed(false)}
+            >
+              <PanelBottomOpen size={16} />
+            </button>
+          ) : (
+            <div className="playback-bar">
+              <button
+                className="icon-button chrome-toggle collapse-controls-button"
+                type="button"
+                aria-label="Hide replay controls"
+                title="Hide replay controls"
+                onClick={() => setControlsCollapsed(true)}
+              >
+                <PanelBottomClose size={16} />
+              </button>
+              <div className="timeline-row">
+                <span>
+                  Step {cursor} of {steps.length}
+                </span>
+                <input
+                  aria-label="Replay position"
+                  type="range"
+                  min="0"
+                  max={steps.length}
+                  value={cursor}
+                  onChange={seek}
+                />
+                <span>{progress}%</span>
+              </div>
+              <div className="playback-controls">
+                <button
+                  className="icon-button"
+                  type="button"
+                  aria-label="Reset replay"
+                  title="Reset replay (R)"
+                  onClick={restart}
+                >
+                  <RotateCcw size={17} />
+                </button>
+                <button
+                  className="icon-button"
+                  type="button"
+                  aria-label="Previous activity"
+                  title="Previous activity (Left arrow)"
+                  disabled={cursor === 0}
+                  onClick={previous}
+                >
+                  <SkipBack size={17} />
+                </button>
+                <button
+                  className="icon-button"
+                  type="button"
+                  aria-label={playing ? "Pause autoplay" : "Start autoplay"}
+                  title={playing ? "Pause autoplay (Space)" : "Start autoplay (Space)"}
+                  onClick={togglePlayback}
+                >
+                  {playing ? <Pause size={18} /> : <Play size={18} />}
+                </button>
+                <button
+                  className="icon-button"
+                  type="button"
+                  aria-label={
+                    activeAnimation
+                      ? "Skip typing animation"
+                      : cursor >= steps.length
+                        ? "Replay complete"
+                        : "Next activity"
+                  }
+                  title={activeAnimation ? "Skip typing animation" : "Next activity (Right arrow)"}
+                  disabled={!activeAnimation && cursor >= steps.length}
+                  onClick={next}
+                >
+                  <StepForward size={17} />
+                </button>
+              </div>
+              <span className="keyboard-hint">
+                ← previous · space autoplay · next → · R reset
               </span>
-              <input
-                aria-label="Replay position"
-                type="range"
-                min="0"
-                max={steps.length}
-                value={cursor}
-                onChange={seek}
-              />
-              <span>{progress}%</span>
             </div>
-            <div className="playback-controls">
-              <button className="icon-button" type="button" aria-label="Restart" onClick={restart}>
-                <RotateCcw size={17} />
-              </button>
-              <button
-                className="icon-button"
-                type="button"
-                aria-label="Previous activity"
-                disabled={cursor === 0}
-                onClick={previous}
-              >
-                <SkipBack size={17} />
-              </button>
-              <button
-                className="play-button"
-                type="button"
-                aria-label={playing ? "Pause autoplay" : "Start autoplay"}
-                onClick={togglePlayback}
-              >
-                {playing ? <Pause size={18} /> : <Play size={18} />}
-                {playing ? "Pause" : "Auto play"}
-              </button>
-              <button
-                className="next-button"
-                type="button"
-                disabled={!activeAnimation && cursor >= steps.length}
-                onClick={next}
-              >
-                {activeAnimation ? "Skip typing" : cursor >= steps.length ? "Complete" : "Next"}
-                <StepForward size={17} />
-              </button>
-            </div>
-            <span className="keyboard-hint">← previous · space autoplay · next →</span>
-          </div>
+          )}
         </section>
       </main>
 

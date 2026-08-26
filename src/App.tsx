@@ -3,20 +3,31 @@ import { ImportScreen } from "./components/ImportScreen";
 import { ReplayView } from "./components/ReplayView";
 import { demoTranscript } from "./demoTranscript";
 import { parseTranscript } from "./parser";
+import {
+  BASE_FADE_DURATION,
+  BASE_SHIMMER_DURATION,
+  normalizeAnimationSpeed,
+} from "./settings";
 import type { Transcript, ViewerSettings } from "./types";
 
 const SETTINGS_KEY = "copilot-chat-replay:settings";
 
 const defaultSettings: ViewerSettings = {
+  showTools: true,
   collapseTools: true,
   userAnimation: "fade",
   copilotAnimation: "typewriter",
   toolAnimation: "shimmer",
   typingSpeed: 180,
-  shimmerDuration: 900,
-  fadeDuration: 240,
+  shimmerSpeed: 1,
+  fadeSpeed: 1,
   autoAdvanceDelay: 900,
   theme: "system",
+};
+
+type StoredViewerSettings = Partial<ViewerSettings> & {
+  shimmerDuration?: number;
+  fadeDuration?: number;
 };
 
 function loadSettings(): ViewerSettings {
@@ -26,16 +37,33 @@ function loadSettings(): ViewerSettings {
       return defaultSettings;
     }
 
-    const storedSettings = JSON.parse(stored) as Partial<ViewerSettings>;
+    const storedSettings = JSON.parse(stored) as StoredViewerSettings;
     const usesPreviousTypingDefault =
-      !Object.hasOwn(storedSettings, "shimmerDuration") && storedSettings.typingSpeed === 120;
+      !Object.hasOwn(storedSettings, "shimmerDuration") &&
+      !Object.hasOwn(storedSettings, "shimmerSpeed") &&
+      storedSettings.typingSpeed === 120;
+    const {
+      fadeDuration,
+      shimmerDuration,
+      ...currentSettings
+    } = storedSettings;
+    const shimmerSpeed = normalizeAnimationSpeed(
+      currentSettings.shimmerSpeed ??
+        (shimmerDuration ? BASE_SHIMMER_DURATION / shimmerDuration : defaultSettings.shimmerSpeed),
+    );
+    const fadeSpeed = normalizeAnimationSpeed(
+      currentSettings.fadeSpeed ??
+        (fadeDuration ? BASE_FADE_DURATION / fadeDuration : defaultSettings.fadeSpeed),
+    );
 
     return {
       ...defaultSettings,
-      ...storedSettings,
+      ...currentSettings,
+      shimmerSpeed,
+      fadeSpeed,
       typingSpeed: usesPreviousTypingDefault
         ? defaultSettings.typingSpeed
-        : (storedSettings.typingSpeed ?? defaultSettings.typingSpeed),
+        : (currentSettings.typingSpeed ?? defaultSettings.typingSpeed),
     };
   } catch (error) {
     console.warn("Replay settings could not be loaded.", error);

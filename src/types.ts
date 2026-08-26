@@ -60,13 +60,14 @@ export interface ToolPlaybackStep {
 export type PlaybackStep = MessagePlaybackStep | ToolPlaybackStep;
 
 export interface ViewerSettings {
+  showTools: boolean;
   collapseTools: boolean;
   userAnimation: AnimationMode;
   copilotAnimation: AnimationMode;
   toolAnimation: ToolAnimationMode;
   typingSpeed: number;
-  shimmerDuration: number;
-  fadeDuration: number;
+  shimmerSpeed: number;
+  fadeSpeed: number;
   autoAdvanceDelay: number;
   theme: ThemePreference;
 }

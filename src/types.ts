@@ -68,6 +68,7 @@ export interface ViewerSettings {
   typingSpeed: number;
   shimmerSpeed: number;
   fadeSpeed: number;
+  autoPlayAiResponses: boolean;
   autoAdvanceDelay: number;
   theme: ThemePreference;
 }

@@ -10,6 +10,7 @@ demos.
 - Upload a session history Markdown file or paste its contents.
 - Step forward and backward through known user, Copilot, and tool-call output.
 - Auto-play a session without waiting for model inference.
+- Optionally autoplay each AI response sequence, pausing before the next user message.
 - Hide tool calls entirely or group consecutive calls into a compact `X tools called` activity.
 - Configure user, Copilot, and tool-call animations with independent typing, shimmer, and fade
   speeds.

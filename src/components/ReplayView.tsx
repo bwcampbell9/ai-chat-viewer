@@ -59,6 +59,8 @@ interface ActiveAnimation {
   totalChars: number;
 }
 
+type PlaybackMode = "stopped" | "all" | "ai-responses";
+
 type ReplayTimingStyle = CSSProperties & {
   "--cp-shimmer-duration": string;
   "--cp-fade-duration": string;
@@ -241,7 +243,7 @@ export function ReplayView({
       ? Math.min(Math.max(requestedStep, 0), steps.length)
       : 0;
   });
-  const [playing, setPlaying] = useState(false);
+  const [playbackMode, setPlaybackMode] = useState<PlaybackMode>("stopped");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [headerCollapsed, setHeaderCollapsed] = useState(false);
   const [controlsCollapsed, setControlsCollapsed] = useState(false);
@@ -306,7 +308,7 @@ export function ReplayView({
 
   const revealNext = useCallback(() => {
     if (cursor >= steps.length) {
-      setPlaying(false);
+      setPlaybackMode("stopped");
       return;
     }
 
@@ -314,6 +316,14 @@ export function ReplayView({
     setCursor((current) => current + 1);
 
     if (step.kind === "message") {
+      if (
+        step.event.role === "user" &&
+        settings.autoPlayAiResponses &&
+        playbackMode !== "all"
+      ) {
+        setPlaybackMode("ai-responses");
+      }
+
       const mode =
         step.event.role === "user" ? settings.userAnimation : settings.copilotAnimation;
       if (mode === "typewriter" && step.event.rawContent) {
@@ -326,6 +336,8 @@ export function ReplayView({
     }
   }, [
     cursor,
+    playbackMode,
+    settings.autoPlayAiResponses,
     settings.copilotAnimation,
     settings.userAnimation,
     steps,
@@ -340,33 +352,48 @@ export function ReplayView({
   }, [activeAnimation, revealNext]);
 
   const previous = useCallback(() => {
-    setPlaying(false);
+    setPlaybackMode("stopped");
     setActiveAnimation(null);
     setCursor((current) => Math.max(0, current - 1));
   }, []);
 
   const restart = useCallback(() => {
-    setPlaying(false);
+    setPlaybackMode("stopped");
     setActiveAnimation(null);
     setCursor(0);
   }, []);
 
   const togglePlayback = useCallback(() => {
+    if (playbackMode !== "stopped") {
+      setPlaybackMode("stopped");
+      return;
+    }
+
     if (cursor >= steps.length) {
       setCursor(0);
       setActiveAnimation(null);
-      setPlaying(true);
+      setPlaybackMode("all");
       return;
     }
-    setPlaying((current) => !current);
-  }, [cursor, steps.length]);
+    setPlaybackMode("all");
+  }, [cursor, playbackMode, steps.length]);
 
   useEffect(() => {
-    if (!playing || activeAnimation) {
+    if (playbackMode === "stopped" || activeAnimation) {
       return;
     }
     if (cursor >= steps.length) {
-      setPlaying(false);
+      setPlaybackMode("stopped");
+      return;
+    }
+
+    const nextStep = steps[cursor];
+    if (
+      playbackMode === "ai-responses" &&
+      (!settings.autoPlayAiResponses ||
+        (nextStep.kind === "message" && nextStep.event.role === "user"))
+    ) {
+      setPlaybackMode("stopped");
       return;
     }
 
@@ -375,10 +402,11 @@ export function ReplayView({
   }, [
     activeAnimation,
     cursor,
-    playing,
+    playbackMode,
     revealNext,
+    settings.autoPlayAiResponses,
     settings.autoAdvanceDelay,
-    steps.length,
+    steps,
   ]);
 
   useEffect(() => {
@@ -414,13 +442,14 @@ export function ReplayView({
   }, [next, previous, restart, togglePlayback]);
 
   const seek = (event: ChangeEvent<HTMLInputElement>) => {
-    setPlaying(false);
+    setPlaybackMode("stopped");
     setActiveAnimation(null);
     setCursor(Number(event.target.value));
   };
 
   const visibleSteps = steps.slice(0, cursor);
   const latestStep = visibleSteps.at(-1);
+  const playing = playbackMode !== "stopped";
   const progress = steps.length ? Math.round((cursor / steps.length) * 100) : 0;
   const replayTimingStyle: ReplayTimingStyle = {
     "--cp-shimmer-duration": `${durationForSpeed(

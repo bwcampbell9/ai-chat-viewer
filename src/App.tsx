@@ -21,6 +21,7 @@ const defaultSettings: ViewerSettings = {
   typingSpeed: 180,
   shimmerSpeed: 1,
   fadeSpeed: 1,
+  autoPlayAiResponses: false,
   autoAdvanceDelay: 900,
   theme: "system",
 };

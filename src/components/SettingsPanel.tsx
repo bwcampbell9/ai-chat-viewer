@@ -209,9 +209,27 @@ export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProp
 
           <section className="setting-section">
             <div className="setting-heading">
-              <span>Autoplay pacing</span>
-              <small>Pause between completed activities.</small>
+              <span>Autoplay</span>
+              <small>Control automatic playback and timing.</small>
             </div>
+            <label className="switch-row">
+              <span>
+                <strong>Autoplay AI responses</strong>
+                <small>After a user message, continue until the next one.</small>
+              </span>
+              <button
+                className={`switch ${settings.autoPlayAiResponses ? "on" : ""}`}
+                type="button"
+                role="switch"
+                aria-label="Autoplay AI responses"
+                aria-checked={settings.autoPlayAiResponses}
+                onClick={() =>
+                  patchSettings({ autoPlayAiResponses: !settings.autoPlayAiResponses })
+                }
+              >
+                <span />
+              </button>
+            </label>
             <label className="range-setting">
               <span>
                 <strong>Step delay</strong>

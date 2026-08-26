@@ -25,7 +25,8 @@ conversation.
 ## Replay controls
 
 Use the replay buttons or the keyboard: `←` and `→` move between activities, `Space` toggles
-autoplay, and `R` resets the replay. Keyboard shortcuts are ignored while editing a field.
+autoplay, `R` resets the replay, and `M` hides or restores both chrome bars. Keyboard shortcuts
+are ignored while editing a field.
 
 ## Supported export format
 

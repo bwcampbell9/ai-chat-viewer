@@ -609,6 +609,12 @@ export function ReplayView({
     setPlaybackMode("all");
   }, [cursor, playbackMode, steps.length]);
 
+  const toggleChrome = useCallback(() => {
+    const shouldCollapse = !headerCollapsed || !controlsCollapsed;
+    setHeaderCollapsed(shouldCollapse);
+    setControlsCollapsed(shouldCollapse);
+  }, [controlsCollapsed, headerCollapsed]);
+
   useEffect(() => {
     if (playbackMode === "stopped" || activeAnimation || pendingVisualAnimation) {
       return;
@@ -658,6 +664,9 @@ export function ReplayView({
       if (event.key.toLowerCase() === "r") {
         event.preventDefault();
         restart();
+      } else if (event.key.toLowerCase() === "m") {
+        event.preventDefault();
+        toggleChrome();
       } else if (target?.matches("button, summary")) {
         return;
       } else if (event.key === "ArrowRight") {
@@ -674,7 +683,7 @@ export function ReplayView({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [next, previous, restart, togglePlayback]);
+  }, [next, previous, restart, toggleChrome, togglePlayback]);
 
   const seek = (event: ChangeEvent<HTMLInputElement>) => {
     setPlaybackMode("stopped");
@@ -976,7 +985,7 @@ export function ReplayView({
                 </button>
               </div>
               <span className="keyboard-hint">
-                ← previous · space autoplay · next → · R reset
+                ← previous · space autoplay · next → · R reset · M chrome
               </span>
             </div>
           )}

@@ -84,3 +84,7 @@ npm run build
 ```
 
 GitHub Actions deploys `dist` to GitHub Pages after pushes to `main` or the initial feature branch.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).

@@ -1,6 +1,8 @@
 import type {
+  AskUserEvent,
   PlaybackStep,
   SessionEvent,
+  SkillEvent,
   ToolEvent,
   ToolPayload,
   Transcript,
@@ -169,6 +171,31 @@ function parseToolContent(content: string): Pick<ToolEvent, "arguments" | "resul
   };
 }
 
+function readJsonObject(payload?: ToolPayload): Record<string, unknown> | undefined {
+  if (!payload) {
+    return undefined;
+  }
+
+  try {
+    const value = JSON.parse(payload.content) as unknown;
+    return typeof value === "object" && value !== null && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function readAskUserAnswer(payload?: ToolPayload): string | undefined {
+  const content = payload?.content.trim();
+  if (!content) {
+    return undefined;
+  }
+
+  const prefixedAnswer = content.match(/^User\s+(?:selected|answered|responded):\s*([\s\S]+)$/i);
+  return (prefixedAnswer?.[1] ?? content).trim() || undefined;
+}
+
 function parseEventBlock(block: string, index: number): SessionEvent | undefined {
   const lines = block.split("\n");
   let cursor = 0;
@@ -219,12 +246,40 @@ function parseEventBlock(block: string, index: number): SessionEvent | undefined
     return undefined;
   }
 
+  const name = toolMatch[1].trim();
+  const status = toolMatch[2].trim();
+  const payloads = parseToolContent(rawContent);
+  const argumentsObject = readJsonObject(payloads.arguments);
+
+  if (name.toLowerCase() === "skill" && typeof argumentsObject?.skill === "string") {
+    return {
+      ...base,
+      kind: "skill",
+      skill: argumentsObject.skill,
+      status,
+    } satisfies SkillEvent;
+  }
+
+  if (name.toLowerCase() === "ask_user" && typeof argumentsObject?.question === "string") {
+    const choices = Array.isArray(argumentsObject.choices)
+      ? argumentsObject.choices.filter((choice): choice is string => typeof choice === "string")
+      : [];
+    return {
+      ...base,
+      kind: "ask-user",
+      question: argumentsObject.question,
+      choices,
+      answer: readAskUserAnswer(payloads.result),
+      status,
+    } satisfies AskUserEvent;
+  }
+
   return {
     ...base,
     kind: "tool",
-    name: toolMatch[1].trim(),
-    status: toolMatch[2].trim(),
-    ...parseToolContent(rawContent),
+    name,
+    status,
+    ...payloads,
   };
 }
 
@@ -264,6 +319,19 @@ export function createPlaybackSteps(
 
     if (event.kind === "message") {
       steps.push({ id: event.id, kind: "message", event });
+      continue;
+    }
+
+    if (event.kind === "skill") {
+      steps.push({ id: `skill-${event.id}`, kind: "skill", event });
+      continue;
+    }
+
+    if (event.kind === "ask-user") {
+      steps.push({ id: `question-${event.id}`, kind: "question", event });
+      if (event.answer) {
+        steps.push({ id: `answer-${event.id}`, kind: "answer", event });
+      }
       continue;
     }
 

@@ -1,7 +1,10 @@
 import {
+  BookOpenCheck,
+  Check,
   CheckCircle2,
   ChevronDown,
   Circle,
+  CircleHelp,
   FileText,
   LockKeyhole,
   Pause,
@@ -37,7 +40,9 @@ import {
 import type {
   AiResponseAutoplayMode,
   AnimationMode,
+  AskUserEvent,
   PlaybackStep,
+  SkillEvent,
   ToolEvent,
   ToolAnimationMode,
   ToolPayload,
@@ -72,7 +77,7 @@ function lastEventIndex(step?: PlaybackStep): number | undefined {
   if (!step) {
     return undefined;
   }
-  return step.kind === "message" ? step.event.index : step.events.at(-1)?.index;
+  return step.kind === "tools" ? step.events.at(-1)?.index : step.event.index;
 }
 
 function isUserStep(step?: PlaybackStep): boolean {
@@ -85,6 +90,16 @@ function pausesBeforeUser(mode: AiResponseAutoplayMode): boolean {
 
 function pausesAfterUser(mode: AiResponseAutoplayMode): boolean {
   return mode === "after-user" || mode === "before-and-after";
+}
+
+function toolAnimationClass(isLatest: boolean, animation: ToolAnimationMode): string {
+  if (!isLatest) {
+    return "";
+  }
+  if (animation === "shimmer") {
+    return "shimmer-entry";
+  }
+  return animation === "fade" ? "fade-entry" : "";
 }
 
 function statusClass(status: string): string {
@@ -155,12 +170,7 @@ function ToolGroup({
   const failures = events.filter((event) => statusClass(event.status) === "failed").length;
   const summary =
     events.length === 1 ? `${events[0].name} called` : `${events.length} tools called`;
-  const animationClass =
-    isLatest && animation === "shimmer"
-      ? "shimmer-entry"
-      : isLatest && animation === "fade"
-        ? "fade-entry"
-        : "";
+  const animationClass = toolAnimationClass(isLatest, animation);
 
   return (
     <details
@@ -187,6 +197,90 @@ function ToolGroup({
         </div>
       ) : null}
     </details>
+  );
+}
+
+function SkillEntry({
+  event,
+  animation,
+  isLatest,
+}: {
+  event: SkillEvent;
+  animation: ToolAnimationMode;
+  isLatest: boolean;
+}) {
+  return (
+    <div
+      className={`activity-entry skill-entry ${toolAnimationClass(isLatest, animation)}`.trim()}
+    >
+      <span className="activity-icon completed">
+        <BookOpenCheck size={15} />
+      </span>
+      <span className="activity-label">Loaded skill</span>
+      <span className="activity-meta">{event.skill}</span>
+      <span className="tool-time">{event.elapsedLabel}</span>
+    </div>
+  );
+}
+
+function AskUserEntry({
+  event,
+  answered,
+  animation,
+  isLatest,
+}: {
+  event: AskUserEvent;
+  answered: boolean;
+  animation: ToolAnimationMode;
+  isLatest: boolean;
+}) {
+  const selectedChoice =
+    answered && event.answer
+      ? event.choices.find((choice) => choice === event.answer)
+      : undefined;
+
+  return (
+    <article
+      className={`ask-user-entry ${toolAnimationClass(isLatest, animation)}`.trim()}
+      aria-label={answered ? "Question answered" : "Question"}
+    >
+      <div className="ask-user-label">
+        <CircleHelp size={15} />
+        <span>{answered ? "Answer recorded" : "Question"}</span>
+        <span className="message-time">{event.elapsedLabel}</span>
+      </div>
+      <div className="ask-user-card">
+        <MarkdownContent content={event.question} className="ask-user-question" />
+        {event.choices.length ? (
+          <div className="answer-options" role="list" aria-label="Response options">
+            {event.choices.map((choice) => {
+              const selected = choice === selectedChoice;
+              return (
+                <div
+                  key={choice}
+                  className={`answer-option ${selected ? "selected" : ""}`.trim()}
+                  role="listitem"
+                >
+                  <span className="answer-option-marker" aria-hidden="true">
+                    {selected ? <Check size={12} /> : <Circle size={12} />}
+                  </span>
+                  <span>{choice}</span>
+                  {selected ? <span className="answer-option-state">Selected</span> : null}
+                </div>
+              );
+            })}
+          </div>
+        ) : !answered ? (
+          <div className="freeform-prompt">Free-form response</div>
+        ) : null}
+        {answered && event.answer && !selectedChoice ? (
+          <div className="freeform-answer">
+            <span>Free-form answer</span>
+            <strong>{event.answer}</strong>
+          </div>
+        ) : null}
+      </div>
+    </article>
   );
 }
 
@@ -265,19 +359,26 @@ export function ReplayView({
   const previousStepsRef = useRef(steps);
   const feedEndRef = useRef<HTMLDivElement>(null);
 
-  const toolCount = useMemo(
-    () => transcript.events.filter((event) => event.kind === "tool").length,
+  const turnCount = useMemo(
+    () => transcript.events.filter((event) => event.kind === "message").length,
     [transcript.events],
   );
-  const turnCount = transcript.events.length - toolCount;
-  const lastVisibleIndex = lastEventIndex(previousStepsRef.current[cursor - 1]);
+  const toolCount = transcript.events.length - turnCount;
+  const lastVisibleStep = previousStepsRef.current[cursor - 1];
+  const lastVisibleStepId = lastVisibleStep?.id;
+  const lastVisibleIndex = lastEventIndex(lastVisibleStep);
 
   useEffect(() => {
     if (previousStepsRef.current === steps) {
       return;
     }
 
-    if (lastVisibleIndex !== undefined) {
+    const matchingStepIndex = lastVisibleStepId
+      ? steps.findIndex((step) => step.id === lastVisibleStepId)
+      : -1;
+    if (matchingStepIndex >= 0) {
+      setCursor(matchingStepIndex + 1);
+    } else if (lastVisibleIndex !== undefined) {
       const nextCursor = steps.filter(
         (step) => (lastEventIndex(step) ?? Number.POSITIVE_INFINITY) <= lastVisibleIndex,
       ).length;
@@ -285,7 +386,7 @@ export function ReplayView({
     }
     previousStepsRef.current = steps;
     setActiveAnimation(null);
-  }, [lastVisibleIndex, steps]);
+  }, [lastVisibleIndex, lastVisibleStepId, steps]);
 
   useEffect(() => {
     if (!activeAnimation) {
@@ -482,6 +583,11 @@ export function ReplayView({
 
   const visibleSteps = steps.slice(0, cursor);
   const latestStep = visibleSteps.at(-1);
+  const answeredQuestionIds = new Set(
+    visibleSteps
+      .filter((step) => step.kind === "answer")
+      .map((step) => step.event.id),
+  );
   const playing = playbackMode !== "stopped";
   const progress = steps.length ? Math.round((cursor / steps.length) * 100) : 0;
   const replayTimingStyle: ReplayTimingStyle = {
@@ -611,6 +717,44 @@ export function ReplayView({
                   <ToolGroup
                     key={step.id}
                     events={step.events}
+                    animation={settings.toolAnimation}
+                    isLatest={latestStep?.id === step.id}
+                  />
+                );
+              }
+
+              if (step.kind === "skill") {
+                return (
+                  <SkillEntry
+                    key={step.id}
+                    event={step.event}
+                    animation={settings.toolAnimation}
+                    isLatest={latestStep?.id === step.id}
+                  />
+                );
+              }
+
+              if (step.kind === "question") {
+                if (answeredQuestionIds.has(step.event.id)) {
+                  return null;
+                }
+                return (
+                  <AskUserEntry
+                    key={step.id}
+                    event={step.event}
+                    answered={false}
+                    animation={settings.toolAnimation}
+                    isLatest={latestStep?.id === step.id}
+                  />
+                );
+              }
+
+              if (step.kind === "answer") {
+                return (
+                  <AskUserEntry
+                    key={step.id}
+                    event={step.event}
+                    answered
                     animation={settings.toolAnimation}
                     isLatest={latestStep?.id === step.id}
                   />

@@ -12,6 +12,7 @@ demos.
 - Auto-play a session without waiting for model inference.
 - Configure AI-response autoplay to pause before user messages, after them, both, or remain off.
 - Hide tool calls entirely or group consecutive calls into a compact `X tools called` activity.
+- Replay skill loads and `ask_user` prompts with dedicated selected-choice and free-form answer UI.
 - Configure user, Copilot, and tool-call animations with independent typing, shimmer, and fade
   speeds.
 - Expand individual tool arguments and results only when needed.

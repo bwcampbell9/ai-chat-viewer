@@ -16,6 +16,26 @@ Summarize the changes on this branch and prepare a release note.
 
 ---
 
+<sub>1s</sub>
+
+## Tool: skill - Completed
+
+**Arguments**
+
+\`\`\`json
+{
+  "skill": "release-note-writer"
+}
+\`\`\`
+
+**Result**
+
+\`\`\`text
+Skill "release-note-writer" loaded successfully.
+\`\`\`
+
+---
+
 <sub>3s</sub>
 
 ## Copilot
@@ -73,6 +93,30 @@ The branch adds deterministic chat playback, local Markdown import, and configur
 
 ---
 
+<sub>9s</sub>
+
+## Tool: ask_user - Completed
+
+**Arguments**
+
+\`\`\`json
+{
+  "question": "Which format should I use for the release note?",
+  "choices": [
+    "Match the existing changelog style (Recommended)",
+    "Use a concise standalone summary"
+  ]
+}
+\`\`\`
+
+**Result**
+
+\`\`\`text
+User selected: Match the existing changelog style (Recommended)
+\`\`\`
+
+---
+
 <sub>12s</sub>
 
 ## Tool: apply_patch - Completed
@@ -91,11 +135,35 @@ Added release notes for the chat replay experience.
 
 ---
 
+<sub>13s</sub>
+
+## Tool: ask_user - Completed
+
+**Arguments**
+
+\`\`\`json
+{
+  "question": "Who is the primary audience for this release note?",
+  "choices": [
+    "Application developers",
+    "End users"
+  ]
+}
+\`\`\`
+
+**Result**
+
+\`\`\`text
+User answered: Internal platform maintainers
+\`\`\`
+
+---
+
 <sub>14s</sub>
 
 ## Copilot
 
-Release notes are ready. They highlight the local-only transcript import, click-through playback, and compact tool-call summaries.
+Release notes are ready for internal platform maintainers. They match the existing changelog style and highlight local-only transcript import, click-through playback, and compact tool-call summaries.
 
 ---
 

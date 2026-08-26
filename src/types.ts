@@ -41,7 +41,21 @@ export interface ToolEvent extends BaseEvent {
   result?: ToolPayload;
 }
 
-export type SessionEvent = MessageEvent | ToolEvent;
+export interface SkillEvent extends BaseEvent {
+  kind: "skill";
+  skill: string;
+  status: string;
+}
+
+export interface AskUserEvent extends BaseEvent {
+  kind: "ask-user";
+  question: string;
+  choices: string[];
+  answer?: string;
+  status: string;
+}
+
+export type SessionEvent = MessageEvent | ToolEvent | SkillEvent | AskUserEvent;
 
 export interface Transcript {
   title: string;
@@ -62,7 +76,30 @@ export interface ToolPlaybackStep {
   events: ToolEvent[];
 }
 
-export type PlaybackStep = MessagePlaybackStep | ToolPlaybackStep;
+export interface SkillPlaybackStep {
+  id: string;
+  kind: "skill";
+  event: SkillEvent;
+}
+
+export interface AskUserQuestionPlaybackStep {
+  id: string;
+  kind: "question";
+  event: AskUserEvent;
+}
+
+export interface AskUserAnswerPlaybackStep {
+  id: string;
+  kind: "answer";
+  event: AskUserEvent;
+}
+
+export type PlaybackStep =
+  | MessagePlaybackStep
+  | ToolPlaybackStep
+  | SkillPlaybackStep
+  | AskUserQuestionPlaybackStep
+  | AskUserAnswerPlaybackStep;
 
 export interface ViewerSettings {
   showTools: boolean;

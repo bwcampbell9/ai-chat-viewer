@@ -9,18 +9,30 @@ describe("parseTranscript", () => {
 
     expect(transcript.title).toBe("Prepare a release summary");
     expect(transcript.metadata.sessionId).toBe("demo-session-001");
-    expect(transcript.events).toHaveLength(7);
+    expect(transcript.events).toHaveLength(10);
     expect(transcript.events[0]).toMatchObject({
       kind: "message",
       role: "user",
       elapsedSeconds: 0,
     });
-    expect(transcript.events[2]).toMatchObject({
+    expect(transcript.events[1]).toMatchObject({
+      kind: "skill",
+      skill: "release-note-writer",
+    });
+    expect(transcript.events[3]).toMatchObject({
       kind: "tool",
       name: "powershell",
       status: "Completed",
       arguments: { language: "json" },
       result: { language: "text" },
+    });
+    expect(transcript.events[6]).toMatchObject({
+      kind: "ask-user",
+      answer: "Match the existing changelog style (Recommended)",
+    });
+    expect(transcript.events[8]).toMatchObject({
+      kind: "ask-user",
+      answer: "Internal platform maintainers",
     });
   });
 
@@ -29,12 +41,12 @@ describe("parseTranscript", () => {
     const collapsed = createPlaybackSteps(transcript.events, true);
     const expanded = createPlaybackSteps(transcript.events, false);
 
-    expect(collapsed).toHaveLength(6);
-    expect(collapsed[2]).toMatchObject({ kind: "tools" });
-    if (collapsed[2].kind === "tools") {
-      expect(collapsed[2].events).toHaveLength(2);
+    expect(collapsed).toHaveLength(11);
+    expect(collapsed[3]).toMatchObject({ kind: "tools" });
+    if (collapsed[3].kind === "tools") {
+      expect(collapsed[3].events).toHaveLength(2);
     }
-    expect(expanded).toHaveLength(7);
+    expect(expanded).toHaveLength(12);
   });
 
   it("does not treat headings inside fenced tool results as events", () => {
@@ -75,6 +87,104 @@ Done`);
     expect(transcript.events).toHaveLength(3);
     expect(transcript.events[1]).toMatchObject({ kind: "tool", name: "view" });
   });
+
+  it("parses skill loads and splits questions from their selected answers", () => {
+    const transcript = parseTranscript(`Special tools
+
+---
+
+<sub>0s</sub>
+
+## User
+
+Start
+
+---
+
+<sub>1s</sub>
+
+## Tool: skill - Completed
+
+**Arguments**
+
+\`\`\`json
+{ "skill": "elm-repository-migration" }
+\`\`\`
+
+**Result**
+
+\`\`\`text
+Skill loaded.
+\`\`\`
+
+---
+
+<sub>2s</sub>
+
+## Tool: ask_user - Completed
+
+**Arguments**
+
+\`\`\`json
+{
+  "question": "Continue?",
+  "choices": ["Yes", "No"]
+}
+\`\`\`
+
+**Result**
+
+\`\`\`text
+User selected: Yes
+\`\`\``);
+
+    expect(transcript.events[1]).toMatchObject({
+      kind: "skill",
+      skill: "elm-repository-migration",
+    });
+    expect(transcript.events[2]).toMatchObject({
+      kind: "ask-user",
+      question: "Continue?",
+      choices: ["Yes", "No"],
+      answer: "Yes",
+    });
+    expect(createPlaybackSteps(transcript.events, true).map((step) => step.kind)).toEqual([
+      "message",
+      "skill",
+      "question",
+      "answer",
+    ]);
+  });
+
+  it("preserves free-form answers that are not listed choices", () => {
+    const transcript = parseTranscript(`Free-form answer
+
+---
+
+<sub>0s</sub>
+
+## Tool: ask_user - Completed
+
+**Arguments**
+
+\`\`\`json
+{
+  "question": "Which repository?",
+  "choices": ["One", "Two"]
+}
+\`\`\`
+
+**Result**
+
+\`\`\`text
+User answered: A custom repository
+\`\`\``);
+
+    expect(transcript.events[0]).toMatchObject({
+      kind: "ask-user",
+      answer: "A custom repository",
+    });
+  });
 });
 
 describe("parseElapsedSeconds", () => {
@@ -90,7 +200,31 @@ describe.skipIf(!externalSample)("provided transcript", () => {
     const transcript = parseTranscript(readFileSync(externalSample!, "utf8"), "mirror-azure-pr.md");
 
     expect(transcript.events).toHaveLength(202);
-    expect(transcript.events.filter((event) => event.kind === "tool")).toHaveLength(172);
+    expect(transcript.events.filter((event) => event.kind !== "message")).toHaveLength(172);
     expect(transcript.events.filter((event) => event.kind === "message")).toHaveLength(30);
+  });
+});
+
+const interactiveSample = process.env.INTERACTIVE_SAMPLE_TRANSCRIPT;
+
+describe.skipIf(!interactiveSample)("interactive tool transcript", () => {
+  it("parses the provided skill and question interaction", () => {
+    const transcript = parseTranscript(
+      readFileSync(interactiveSample!, "utf8"),
+      "elm-repository-migration.md",
+    );
+
+    expect(transcript.events).toContainEqual(
+      expect.objectContaining({
+        kind: "skill",
+        skill: "elm-repository-migration",
+      }),
+    );
+    expect(transcript.events).toContainEqual(
+      expect.objectContaining({
+        kind: "ask-user",
+        answer: "Yes, continue with this repository (Recommended)",
+      }),
+    );
   });
 });

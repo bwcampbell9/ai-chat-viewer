@@ -163,7 +163,6 @@ function IntervalLabel({
   elapsedLabel: string;
   className: "message-time" | "tool-time";
 }) {
-  const displayLabel = intervalLabel === "—" ? intervalLabel : `+${intervalLabel}`;
   const intervalTitle =
     intervalLabel === "—"
       ? "Interval unavailable"
@@ -173,7 +172,7 @@ function IntervalLabel({
       className={className}
       title={`${intervalTitle}; exact event duration is not recorded; session offset ${elapsedLabel}`}
     >
-      {displayLabel}
+      {intervalLabel}
     </span>
   );
 }

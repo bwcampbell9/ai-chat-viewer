@@ -71,9 +71,9 @@ I’ll inspect the branch first.
 
 Session metadata such as `Session ID`, `Started`, `Duration`, and `Exported` is displayed when it
 is present. Event timestamps in the export are cumulative session offsets; the replay displays the
-time since the previous exported activity with a `+` prefix and keeps the original offset in a
-hover tooltip. Copilot Markdown exports do not contain exact tool-execution or model-response
-durations, so the replay does not present these intervals as exact durations.
+time since the previous exported activity and keeps the original offset in a hover tooltip. Copilot
+Markdown exports do not contain exact tool-execution or model-response durations, so the replay
+does not present these intervals as exact durations.
 
 ## Development
 

@@ -21,8 +21,8 @@ interface BaseEvent {
   index: number;
   elapsedLabel: string;
   elapsedSeconds: number;
-  durationLabel: string;
-  durationSeconds: number | null;
+  intervalLabel: string;
+  intervalSeconds: number | null;
   rawContent: string;
 }
 

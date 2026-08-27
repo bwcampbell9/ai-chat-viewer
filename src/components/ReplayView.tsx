@@ -32,7 +32,7 @@ import {
   type ChangeEvent,
   type CSSProperties,
 } from "react";
-import { createPlaybackSteps, formatDuration } from "../parser";
+import { createPlaybackSteps, formatTimeInterval } from "../parser";
 import {
   BASE_FADE_DURATION,
   BASE_SHIMMER_DURATION,
@@ -154,30 +154,36 @@ function PayloadBlock({ label, payload }: { label: string; payload?: ToolPayload
   );
 }
 
-function DurationLabel({
-  durationLabel,
+function IntervalLabel({
+  intervalLabel,
   elapsedLabel,
   className,
 }: {
-  durationLabel: string;
+  intervalLabel: string;
   elapsedLabel: string;
   className: "message-time" | "tool-time";
 }) {
-  const durationTitle =
-    durationLabel === "—" ? "Duration unavailable" : `Duration ${durationLabel}`;
+  const displayLabel = intervalLabel === "—" ? intervalLabel : `+${intervalLabel}`;
+  const intervalTitle =
+    intervalLabel === "—"
+      ? "Interval unavailable"
+      : `${intervalLabel} since the previous exported activity`;
   return (
-    <span className={className} title={`${durationTitle}; session offset ${elapsedLabel}`}>
-      {durationLabel}
+    <span
+      className={className}
+      title={`${intervalTitle}; exact event duration is not recorded; session offset ${elapsedLabel}`}
+    >
+      {displayLabel}
     </span>
   );
 }
 
-function combinedToolDuration(events: ToolEvent[]): string {
-  if (events.some((event) => event.durationSeconds === null)) {
+function combinedToolInterval(events: ToolEvent[]): string {
+  if (events.some((event) => event.intervalSeconds === null)) {
     return "—";
   }
-  return formatDuration(
-    events.reduce((total, event) => total + (event.durationSeconds ?? 0), 0),
+  return formatTimeInterval(
+    events.reduce((total, event) => total + (event.intervalSeconds ?? 0), 0),
   );
 }
 
@@ -196,8 +202,8 @@ function ToolCall({ event }: { event: ToolEvent }) {
         </span>
         <span className="tool-call-name">{event.name}</span>
         <span className="tool-call-status">{event.status}</span>
-        <DurationLabel
-          durationLabel={event.durationLabel}
+        <IntervalLabel
+          intervalLabel={event.intervalLabel}
           elapsedLabel={event.elapsedLabel}
           className="tool-time"
         />
@@ -243,8 +249,8 @@ function ToolGroup({
           {names.slice(0, 3).join(", ")}
           {names.length > 3 ? ` +${names.length - 3}` : ""}
         </span>
-        <DurationLabel
-          durationLabel={combinedToolDuration(events)}
+        <IntervalLabel
+          intervalLabel={combinedToolInterval(events)}
           elapsedLabel={events[0].elapsedLabel}
           className="tool-time"
         />
@@ -279,8 +285,8 @@ function SkillEntry({
       </span>
       <span className="activity-label">Loaded skill</span>
       <span className="activity-meta">{event.skill}</span>
-      <DurationLabel
-        durationLabel={event.durationLabel}
+      <IntervalLabel
+        intervalLabel={event.intervalLabel}
         elapsedLabel={event.elapsedLabel}
         className="tool-time"
       />
@@ -307,8 +313,8 @@ function SystemEntry({
       </span>
       <span className="activity-label">System</span>
       <div className="activity-meta">{event.rawContent}</div>
-      <DurationLabel
-        durationLabel={event.durationLabel}
+      <IntervalLabel
+        intervalLabel={event.intervalLabel}
         elapsedLabel={event.elapsedLabel}
         className="tool-time"
       />
@@ -354,8 +360,8 @@ function AskUserEntry({
             Answer recorded
           </span>
         </span>
-        <DurationLabel
-          durationLabel={event.durationLabel}
+        <IntervalLabel
+          intervalLabel={event.intervalLabel}
           elapsedLabel={event.elapsedLabel}
           className="message-time"
         />
@@ -421,8 +427,8 @@ function MessageEntry({
       <article className={`message-entry user-entry ${animationClass}`.trim()}>
         <div className="user-message">
           <MarkdownContent content={content} />
-          <DurationLabel
-            durationLabel={event.durationLabel}
+          <IntervalLabel
+            intervalLabel={event.intervalLabel}
             elapsedLabel={event.elapsedLabel}
             className="message-time"
           />
@@ -437,8 +443,8 @@ function MessageEntry({
       <div className="speaker-label">
         <Sparkles size={15} />
         <span>Copilot</span>
-        <DurationLabel
-          durationLabel={event.durationLabel}
+        <IntervalLabel
+          intervalLabel={event.intervalLabel}
           elapsedLabel={event.elapsedLabel}
           className="message-time"
         />

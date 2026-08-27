@@ -133,7 +133,7 @@ export function parseElapsedSeconds(value: string): number {
   return total;
 }
 
-export function formatDuration(totalSeconds: number): string {
+export function formatTimeInterval(totalSeconds: number): string {
   if (!Number.isFinite(totalSeconds)) {
     return "—";
   }
@@ -259,8 +259,8 @@ function parseEventBlock(block: string, index: number): SessionEvent | undefined
     index,
     elapsedLabel: elapsedMatch[1].trim(),
     elapsedSeconds: parseElapsedSeconds(elapsedMatch[1]),
-    durationLabel: "—",
-    durationSeconds: null,
+    intervalLabel: "—",
+    intervalSeconds: null,
     rawContent,
   };
 
@@ -321,26 +321,18 @@ function parseEventBlock(block: string, index: number): SessionEvent | undefined
   };
 }
 
-function addEventDurations(events: SessionEvent[]): SessionEvent[] {
+function addEventIntervals(events: SessionEvent[]): SessionEvent[] {
   return events.map((event, eventIndex): SessionEvent => {
-    let nextIndex = eventIndex + 1;
-    while (
-      nextIndex < events.length &&
-      events[nextIndex].elapsedSeconds < event.elapsedSeconds
-    ) {
-      nextIndex += 1;
-    }
-
-    const nextEvent = events[nextIndex];
-    if (!nextEvent) {
+    const previousEvent = events[eventIndex - 1];
+    if (!previousEvent || event.elapsedSeconds < previousEvent.elapsedSeconds) {
       return event;
     }
 
-    const durationSeconds = nextEvent.elapsedSeconds - event.elapsedSeconds;
+    const intervalSeconds = event.elapsedSeconds - previousEvent.elapsedSeconds;
     return {
       ...event,
-      durationLabel: formatDuration(durationSeconds),
-      durationSeconds,
+      intervalLabel: formatTimeInterval(intervalSeconds),
+      intervalSeconds,
     };
   });
 }
@@ -365,7 +357,7 @@ export function parseTranscript(markdown: string, sourceName = "Pasted session")
   return {
     title,
     metadata: parseMetadata(normalized),
-    events: addEventDurations(parsedEvents),
+    events: addEventIntervals(parsedEvents),
     sourceName,
   };
 }

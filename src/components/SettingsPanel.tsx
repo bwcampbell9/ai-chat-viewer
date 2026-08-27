@@ -196,7 +196,7 @@ export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProp
               <input
                 type="range"
                 min="20"
-                max="240"
+                max="360"
                 step="10"
                 disabled={!usesTypewriter}
                 value={settings.typingSpeed}

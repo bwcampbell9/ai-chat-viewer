@@ -133,6 +133,34 @@ export function parseElapsedSeconds(value: string): number {
   return total;
 }
 
+export function formatDuration(totalSeconds: number): string {
+  if (!Number.isFinite(totalSeconds)) {
+    return "—";
+  }
+
+  const normalizedSeconds = Math.max(0, totalSeconds);
+  if (normalizedSeconds < 1) {
+    return "<1s";
+  }
+  let remaining = Math.round(normalizedSeconds);
+
+  const units = [
+    { label: "d", seconds: 86_400 },
+    { label: "h", seconds: 3_600 },
+    { label: "m", seconds: 60 },
+    { label: "s", seconds: 1 },
+  ];
+  const parts: string[] = [];
+  for (const unit of units) {
+    const value = Math.floor(remaining / unit.seconds);
+    if (value > 0) {
+      parts.push(`${value}${unit.label}`);
+      remaining -= value * unit.seconds;
+    }
+  }
+  return parts.join(" ");
+}
+
 function readPayload(section: string): ToolPayload | undefined {
   const trimmed = section.trim();
   if (!trimmed) {
@@ -231,6 +259,8 @@ function parseEventBlock(block: string, index: number): SessionEvent | undefined
     index,
     elapsedLabel: elapsedMatch[1].trim(),
     elapsedSeconds: parseElapsedSeconds(elapsedMatch[1]),
+    durationLabel: "—",
+    durationSeconds: null,
     rawContent,
   };
 
@@ -291,6 +321,30 @@ function parseEventBlock(block: string, index: number): SessionEvent | undefined
   };
 }
 
+function addEventDurations(events: SessionEvent[]): SessionEvent[] {
+  return events.map((event, eventIndex): SessionEvent => {
+    let nextIndex = eventIndex + 1;
+    while (
+      nextIndex < events.length &&
+      events[nextIndex].elapsedSeconds < event.elapsedSeconds
+    ) {
+      nextIndex += 1;
+    }
+
+    const nextEvent = events[nextIndex];
+    if (!nextEvent) {
+      return event;
+    }
+
+    const durationSeconds = nextEvent.elapsedSeconds - event.elapsedSeconds;
+    return {
+      ...event,
+      durationLabel: formatDuration(durationSeconds),
+      durationSeconds,
+    };
+  });
+}
+
 export function parseTranscript(markdown: string, sourceName = "Pasted session"): Transcript {
   const normalized = markdown.replace(/^\uFEFF/, "").trim();
   if (!normalized) {
@@ -298,11 +352,11 @@ export function parseTranscript(markdown: string, sourceName = "Pasted session")
   }
 
   const title = normalized.match(/^#\s+(.+)$/m)?.[1].trim() ?? "Untitled Copilot session";
-  const events = getEventBlocks(normalized)
+  const parsedEvents = getEventBlocks(normalized)
     .map(parseEventBlock)
     .filter((event): event is SessionEvent => Boolean(event));
 
-  if (!events.length) {
+  if (!parsedEvents.length) {
     throw new TranscriptParseError(
       "No Copilot chat turns were found. Use a session export with <sub> timestamps and User, Copilot, System, or Tool headings.",
     );
@@ -311,7 +365,7 @@ export function parseTranscript(markdown: string, sourceName = "Pasted session")
   return {
     title,
     metadata: parseMetadata(normalized),
-    events,
+    events: addEventDurations(parsedEvents),
     sourceName,
   };
 }

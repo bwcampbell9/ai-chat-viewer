@@ -14,6 +14,8 @@ describe("parseTranscript", () => {
       kind: "message",
       role: "user",
       elapsedSeconds: 0,
+      durationLabel: "1s",
+      durationSeconds: 1,
     });
     expect(transcript.events[1]).toMatchObject({
       kind: "skill",
@@ -93,7 +95,7 @@ Done`);
 
 ---
 
-<sub>0s</sub>
+<sub>20s</sub>
 
 ## User
 
@@ -101,7 +103,7 @@ Check the status
 
 ---
 
-<sub>1s</sub>
+<sub>18s</sub>
 
 ## System
 
@@ -109,7 +111,7 @@ MCP server "es chat" requires sign-in.
 
 ---
 
-<sub>2s</sub>
+<sub>28s</sub>
 
 ## Copilot
 
@@ -119,11 +121,14 @@ I’ll continue after sign-in.`);
     expect(transcript.events[0]).toMatchObject({
       kind: "message",
       rawContent: "Check the status",
+      durationLabel: "8s",
     });
     expect(transcript.events[1]).toMatchObject({
       kind: "system",
       rawContent: 'MCP server "es chat" requires sign-in.',
+      durationLabel: "10s",
     });
+    expect(transcript.events[2]).toMatchObject({ durationLabel: "—", durationSeconds: null });
     expect(createPlaybackSteps(transcript.events, true).map((step) => step.kind)).toEqual([
       "message",
       "system",
@@ -196,6 +201,60 @@ User selected: Yes
       "skill",
       "question",
       "answer",
+    ]);
+  });
+
+  it("derives durations from the next event and handles equal timestamps", () => {
+    const transcript = parseTranscript(`Event durations
+
+---
+
+<sub>0s</sub>
+
+## User
+
+Start
+
+---
+
+<sub>5s</sub>
+
+## Copilot
+
+I’ll run two tools.
+
+---
+
+<sub>5s</sub>
+
+## Tool: first - Completed
+
+Done
+
+---
+
+<sub>5s</sub>
+
+## Tool: second - Completed
+
+Done
+
+---
+
+<sub>12s</sub>
+
+## Copilot
+
+Finished`);
+
+    expect(
+      transcript.events.map((event) => [event.durationLabel, event.durationSeconds]),
+    ).toEqual([
+      ["5s", 5],
+      ["<1s", 0],
+      ["<1s", 0],
+      ["7s", 7],
+      ["—", null],
     ]);
   });
 
@@ -282,6 +341,7 @@ describe.skipIf(!systemSample)("system message transcript", () => {
     expect(systemEvents).toHaveLength(1);
     expect(systemEvents[0]).toMatchObject({
       rawContent: 'MCP server "es chat" requires sign-in.',
+      durationLabel: "10s",
     });
     expect(
       transcript.events.find(

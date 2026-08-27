@@ -32,7 +32,7 @@ import {
   type ChangeEvent,
   type CSSProperties,
 } from "react";
-import { createPlaybackSteps } from "../parser";
+import { createPlaybackSteps, formatDuration } from "../parser";
 import {
   BASE_FADE_DURATION,
   BASE_SHIMMER_DURATION,
@@ -154,6 +154,33 @@ function PayloadBlock({ label, payload }: { label: string; payload?: ToolPayload
   );
 }
 
+function DurationLabel({
+  durationLabel,
+  elapsedLabel,
+  className,
+}: {
+  durationLabel: string;
+  elapsedLabel: string;
+  className: "message-time" | "tool-time";
+}) {
+  const durationTitle =
+    durationLabel === "—" ? "Duration unavailable" : `Duration ${durationLabel}`;
+  return (
+    <span className={className} title={`${durationTitle}; session offset ${elapsedLabel}`}>
+      {durationLabel}
+    </span>
+  );
+}
+
+function combinedToolDuration(events: ToolEvent[]): string {
+  if (events.some((event) => event.durationSeconds === null)) {
+    return "—";
+  }
+  return formatDuration(
+    events.reduce((total, event) => total + (event.durationSeconds ?? 0), 0),
+  );
+}
+
 function ToolCall({ event }: { event: ToolEvent }) {
   const [open, setOpen] = useState(false);
   const StatusIcon = statusClass(event.status) === "completed" ? CheckCircle2 : Circle;
@@ -169,7 +196,11 @@ function ToolCall({ event }: { event: ToolEvent }) {
         </span>
         <span className="tool-call-name">{event.name}</span>
         <span className="tool-call-status">{event.status}</span>
-        <span className="tool-time">{event.elapsedLabel}</span>
+        <DurationLabel
+          durationLabel={event.durationLabel}
+          elapsedLabel={event.elapsedLabel}
+          className="tool-time"
+        />
         <ChevronDown className="details-chevron" size={15} />
       </summary>
       {open ? (
@@ -212,7 +243,11 @@ function ToolGroup({
           {names.slice(0, 3).join(", ")}
           {names.length > 3 ? ` +${names.length - 3}` : ""}
         </span>
-        <span className="tool-time">{events[0].elapsedLabel}</span>
+        <DurationLabel
+          durationLabel={combinedToolDuration(events)}
+          elapsedLabel={events[0].elapsedLabel}
+          className="tool-time"
+        />
         <ChevronDown className="details-chevron" size={15} />
       </summary>
       {open ? (
@@ -244,7 +279,11 @@ function SkillEntry({
       </span>
       <span className="activity-label">Loaded skill</span>
       <span className="activity-meta">{event.skill}</span>
-      <span className="tool-time">{event.elapsedLabel}</span>
+      <DurationLabel
+        durationLabel={event.durationLabel}
+        elapsedLabel={event.elapsedLabel}
+        className="tool-time"
+      />
     </div>
   );
 }
@@ -268,7 +307,11 @@ function SystemEntry({
       </span>
       <span className="activity-label">System</span>
       <div className="activity-meta">{event.rawContent}</div>
-      <span className="tool-time">{event.elapsedLabel}</span>
+      <DurationLabel
+        durationLabel={event.durationLabel}
+        elapsedLabel={event.elapsedLabel}
+        className="tool-time"
+      />
     </aside>
   );
 }
@@ -311,7 +354,11 @@ function AskUserEntry({
             Answer recorded
           </span>
         </span>
-        <span className="message-time">{event.elapsedLabel}</span>
+        <DurationLabel
+          durationLabel={event.durationLabel}
+          elapsedLabel={event.elapsedLabel}
+          className="message-time"
+        />
       </div>
       <div className="ask-user-card">
         <div className="ask-user-question-content">
@@ -374,7 +421,11 @@ function MessageEntry({
       <article className={`message-entry user-entry ${animationClass}`.trim()}>
         <div className="user-message">
           <MarkdownContent content={content} />
-          <span className="message-time">{event.elapsedLabel}</span>
+          <DurationLabel
+            durationLabel={event.durationLabel}
+            elapsedLabel={event.elapsedLabel}
+            className="message-time"
+          />
         </div>
         {isTyping ? <span className="typing-cursor" aria-hidden="true" /> : null}
       </article>
@@ -386,7 +437,11 @@ function MessageEntry({
       <div className="speaker-label">
         <Sparkles size={15} />
         <span>Copilot</span>
-        <span className="message-time">{event.elapsedLabel}</span>
+        <DurationLabel
+          durationLabel={event.durationLabel}
+          elapsedLabel={event.elapsedLabel}
+          className="message-time"
+        />
       </div>
       <MarkdownContent content={content} />
       {isTyping ? <span className="typing-cursor" aria-hidden="true" /> : null}

@@ -70,7 +70,8 @@ I’ll inspect the branch first.
 ````
 
 Session metadata such as `Session ID`, `Started`, `Duration`, and `Exported` is displayed when it
-is present.
+is present. Event timestamps in the export are cumulative session offsets; the replay displays the
+derived duration until the next activity and keeps the original offset in a hover tooltip.
 
 ## Development
 

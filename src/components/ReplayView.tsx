@@ -403,7 +403,7 @@ export function ReplayView({
   const playbackEvents = useMemo(
     () =>
       transcript.events.filter((event) => {
-        if (event.kind === "message") {
+        if (event.kind === "message" || event.kind === "ask-user") {
           return true;
         }
         if (event.kind === "system") {
@@ -443,7 +443,11 @@ export function ReplayView({
     () => transcript.events.filter((event) => event.kind === "system").length,
     [transcript.events],
   );
-  const toolCount = transcript.events.length - turnCount - systemCount;
+  const questionCount = useMemo(
+    () => transcript.events.filter((event) => event.kind === "ask-user").length,
+    [transcript.events],
+  );
+  const toolCount = transcript.events.length - turnCount - systemCount - questionCount;
   const lastVisibleStep = previousStepsRef.current[cursor - 1];
   const lastVisibleStepId = lastVisibleStep?.id;
   const lastVisibleIndex = lastEventIndex(lastVisibleStep);
@@ -565,7 +569,9 @@ export function ReplayView({
       playbackMode !== "all" &&
       autoplayMode !== "off"
     ) {
-      if (isUserTurnStep(step) && !pausesAfterUser(autoplayMode)) {
+      if (autoplayMode === "continuous") {
+        setPlaybackMode("ai-responses");
+      } else if (isUserTurnStep(step) && !pausesAfterUser(autoplayMode)) {
         setPlaybackMode("ai-responses");
       } else if (
         !isUserTurnStep(step) &&
@@ -812,6 +818,9 @@ export function ReplayView({
             <p>
               {turnCount} messages
               {settings.showTools ? ` · ${toolCount} tool calls` : " · tool calls hidden"}
+              {questionCount
+                ? ` · ${questionCount} ${questionCount === 1 ? "question" : "questions"}`
+                : ""}
               {systemCount
                 ? settings.showSystemMessages
                   ? ` · ${systemCount} system ${systemCount === 1 ? "message" : "messages"}`

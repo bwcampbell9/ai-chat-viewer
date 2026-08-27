@@ -4,6 +4,7 @@ export type ToolAnimationMode = "none" | "fade" | "shimmer";
 export type ThemePreference = "system" | "light" | "dark";
 export type AiResponseAutoplayMode =
   | "off"
+  | "continuous"
   | "before-user"
   | "after-user"
   | "before-and-after";

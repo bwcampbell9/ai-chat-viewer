@@ -10,8 +10,9 @@ demos.
 - Upload a session history Markdown file or paste its contents.
 - Step forward and backward through known user, Copilot, and tool-call output.
 - Auto-play a session with each step delay beginning after its reveal animation finishes.
-- Configure AI-response autoplay around user turns, including recorded question answers.
-- Hide tool calls entirely or group consecutive calls into a compact `X tools called` activity.
+- Choose full autoplay or pause around user turns, including recorded question answers.
+- Hide tool and skill activity while keeping recorded questions and answers visible.
+- Group consecutive calls into a compact `X tools called` activity.
 - Show system notices as compact AI-side activity or hide them independently.
 - Replay skill loads and `ask_user` prompts with dedicated selected-choice and free-form answer UI.
 - Configure user, Copilot, and tool-call animations with independent typing, shimmer, and fade

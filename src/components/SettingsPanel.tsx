@@ -31,6 +31,7 @@ const aiResponseAutoplayOptions: Array<{
   label: string;
 }> = [
   { value: "off", label: "Off" },
+  { value: "continuous", label: "Full autoplay (no pauses)" },
   { value: "before-user", label: "Pause before user turns" },
   { value: "after-user", label: "Pause after user turns" },
   { value: "before-and-after", label: "Pause before and after user turns" },
@@ -86,7 +87,7 @@ export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProp
             <label className="switch-row">
               <span>
                 <strong>Show tool calls</strong>
-                <small>Include tool activity between chat messages.</small>
+                <small>Include tool and skill activity; questions remain visible.</small>
               </span>
               <button
                 className={`switch ${settings.showTools ? "on" : ""}`}
@@ -239,12 +240,12 @@ export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProp
           <section className="setting-section">
             <div className="setting-heading">
               <span>Autoplay</span>
-              <small>Pause around user messages and recorded question answers.</small>
+              <small>Choose how playback continues around user turns.</small>
             </div>
             <label className="select-row">
-              <span>AI responses</span>
+              <span>Mode</span>
               <select
-                aria-label="Autoplay AI responses"
+                aria-label="Autoplay mode"
                 value={settings.aiResponseAutoplay}
                 onChange={(event) =>
                   patchSettings({

@@ -1,0 +1,308 @@
+import { Gauge, Moon, Monitor, Settings2, Sun, X } from "lucide-react";
+import { MAX_ANIMATION_SPEED, MIN_ANIMATION_SPEED } from "../settings";
+import type {
+  AiResponseAutoplayMode,
+  AnimationMode,
+  ThemePreference,
+  ToolAnimationMode,
+  ViewerSettings,
+} from "../types";
+
+interface SettingsPanelProps {
+  settings: ViewerSettings;
+  onChange: (settings: ViewerSettings) => void;
+  onClose: () => void;
+}
+
+const animationOptions: Array<{ value: AnimationMode; label: string }> = [
+  { value: "typewriter", label: "Typewriter" },
+  { value: "fade", label: "Fade in" },
+  { value: "none", label: "Instant" },
+];
+
+const toolAnimationOptions: Array<{ value: ToolAnimationMode; label: string }> = [
+  { value: "shimmer", label: "Shimmer" },
+  { value: "fade", label: "Fade in" },
+  { value: "none", label: "Instant" },
+];
+
+const aiResponseAutoplayOptions: Array<{
+  value: AiResponseAutoplayMode;
+  label: string;
+}> = [
+  { value: "off", label: "Off" },
+  { value: "continuous", label: "Full autoplay (no pauses)" },
+  { value: "before-user", label: "Pause before user turns" },
+  { value: "after-user", label: "Pause after user turns" },
+  { value: "before-and-after", label: "Pause before and after user turns" },
+];
+
+const themeOptions: Array<{
+  value: ThemePreference;
+  label: string;
+  icon: typeof Monitor;
+}> = [
+  { value: "system", label: "System", icon: Monitor },
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
+];
+
+export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProps) {
+  const patchSettings = (patch: Partial<ViewerSettings>) => {
+    onChange({ ...settings, ...patch });
+  };
+
+  const usesTypewriter =
+    settings.userAnimation === "typewriter" || settings.copilotAnimation === "typewriter";
+  const showsActivity = settings.showTools || settings.showSystemMessages;
+  const usesShimmer = showsActivity && settings.toolAnimation === "shimmer";
+  const usesFade =
+    settings.userAnimation === "fade" ||
+    settings.copilotAnimation === "fade" ||
+    (showsActivity && settings.toolAnimation === "fade");
+
+  return (
+    <div className="settings-layer" role="presentation" onMouseDown={onClose}>
+      <aside
+        className="settings-panel"
+        aria-label="Replay settings"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="settings-header">
+          <span>
+            <Settings2 size={17} />
+            Replay settings
+          </span>
+          <button className="icon-button" type="button" aria-label="Close settings" onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="settings-content">
+          <section className="setting-section">
+            <div className="setting-heading">
+              <span>Activity</span>
+              <small>Choose which runtime activity appears in the replay.</small>
+            </div>
+            <label className="switch-row">
+              <span>
+                <strong>Show tool calls</strong>
+                <small>Include tool and skill activity; questions remain visible.</small>
+              </span>
+              <button
+                className={`switch ${settings.showTools ? "on" : ""}`}
+                type="button"
+                role="switch"
+                aria-checked={settings.showTools}
+                onClick={() => patchSettings({ showTools: !settings.showTools })}
+              >
+                <span />
+              </button>
+            </label>
+            <label className={`switch-row ${settings.showTools ? "" : "disabled"}`}>
+              <span>
+                <strong>Group consecutive calls</strong>
+                <small>Show “X tools called” as one activity.</small>
+              </span>
+              <button
+                className={`switch ${settings.collapseTools ? "on" : ""}`}
+                type="button"
+                role="switch"
+                disabled={!settings.showTools}
+                aria-checked={settings.collapseTools}
+                onClick={() => patchSettings({ collapseTools: !settings.collapseTools })}
+              >
+                <span />
+              </button>
+            </label>
+            <label className="switch-row">
+              <span>
+                <strong>Show system messages</strong>
+                <small>Include notices emitted by the Copilot runtime.</small>
+              </span>
+              <button
+                className={`switch ${settings.showSystemMessages ? "on" : ""}`}
+                type="button"
+                role="switch"
+                aria-checked={settings.showSystemMessages}
+                onClick={() =>
+                  patchSettings({ showSystemMessages: !settings.showSystemMessages })
+                }
+              >
+                <span />
+              </button>
+            </label>
+          </section>
+
+          <section className="setting-section">
+            <div className="setting-heading">
+              <span>Message animation</span>
+              <small>Choose how each role enters the conversation.</small>
+            </div>
+            <label className="select-row">
+              <span>User</span>
+              <select
+                value={settings.userAnimation}
+                onChange={(event) =>
+                  patchSettings({ userAnimation: event.target.value as AnimationMode })
+                }
+              >
+                {animationOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="select-row">
+              <span>Copilot</span>
+              <select
+                value={settings.copilotAnimation}
+                onChange={(event) =>
+                  patchSettings({ copilotAnimation: event.target.value as AnimationMode })
+                }
+              >
+                {animationOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={`select-row ${showsActivity ? "" : "disabled"}`}>
+              <span>Activity</span>
+              <select
+                disabled={!showsActivity}
+                value={settings.toolAnimation}
+                onChange={(event) =>
+                  patchSettings({ toolAnimation: event.target.value as ToolAnimationMode })
+                }
+              >
+                {toolAnimationOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={`range-setting ${usesTypewriter ? "" : "disabled"}`}>
+              <span>
+                <strong>
+                  <Gauge size={15} />
+                  Typing speed
+                </strong>
+                <output>{settings.typingSpeed} chars/sec</output>
+              </span>
+              <input
+                type="range"
+                min="20"
+                max="360"
+                step="10"
+                disabled={!usesTypewriter}
+                value={settings.typingSpeed}
+                onChange={(event) => patchSettings({ typingSpeed: Number(event.target.value) })}
+              />
+            </label>
+            <label className={`range-setting ${usesShimmer ? "" : "disabled"}`}>
+              <span>
+                <strong>Shimmer speed</strong>
+                <output>{settings.shimmerSpeed.toFixed(2)}×</output>
+              </span>
+              <input
+                type="range"
+                min={MIN_ANIMATION_SPEED}
+                max={MAX_ANIMATION_SPEED}
+                step="0.05"
+                disabled={!usesShimmer}
+                value={settings.shimmerSpeed}
+                onChange={(event) =>
+                  patchSettings({ shimmerSpeed: Number(event.target.value) })
+                }
+              />
+            </label>
+            <label className={`range-setting ${usesFade ? "" : "disabled"}`}>
+              <span>
+                <strong>Fade-in speed</strong>
+                <output>{settings.fadeSpeed.toFixed(2)}×</output>
+              </span>
+              <input
+                type="range"
+                min={MIN_ANIMATION_SPEED}
+                max={MAX_ANIMATION_SPEED}
+                step="0.05"
+                disabled={!usesFade}
+                value={settings.fadeSpeed}
+                onChange={(event) => patchSettings({ fadeSpeed: Number(event.target.value) })}
+              />
+            </label>
+          </section>
+
+          <section className="setting-section">
+            <div className="setting-heading">
+              <span>Autoplay</span>
+              <small>Choose how playback continues around user turns.</small>
+            </div>
+            <label className="select-row">
+              <span>Mode</span>
+              <select
+                aria-label="Autoplay mode"
+                value={settings.aiResponseAutoplay}
+                onChange={(event) =>
+                  patchSettings({
+                    aiResponseAutoplay: event.target.value as AiResponseAutoplayMode,
+                  })
+                }
+              >
+                {aiResponseAutoplayOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="range-setting">
+              <span>
+                <strong>Step delay</strong>
+                <output>{(settings.autoAdvanceDelay / 1000).toFixed(1)} sec</output>
+              </span>
+              <input
+                type="range"
+                min="0"
+                max="3000"
+                step="100"
+                value={settings.autoAdvanceDelay}
+                onChange={(event) =>
+                  patchSettings({ autoAdvanceDelay: Number(event.target.value) })
+                }
+              />
+            </label>
+          </section>
+
+          <section className="setting-section">
+            <div className="setting-heading">
+              <span>Appearance</span>
+              <small>Use your device theme or override it here.</small>
+            </div>
+            <div className="theme-options" role="group" aria-label="Color theme">
+              {themeOptions.map((option) => {
+                const Icon = option.icon;
+                return (
+                  <button
+                    key={option.value}
+                    className={settings.theme === option.value ? "active" : ""}
+                    type="button"
+                    aria-pressed={settings.theme === option.value}
+                    onClick={() => patchSettings({ theme: option.value })}
+                  >
+                    <Icon size={15} />
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+      </aside>
+    </div>
+  );
+}

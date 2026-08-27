@@ -88,6 +88,49 @@ Done`);
     expect(transcript.events[1]).toMatchObject({ kind: "tool", name: "view" });
   });
 
+  it("parses system messages as standalone playback activity", () => {
+    const transcript = parseTranscript(`System notice
+
+---
+
+<sub>0s</sub>
+
+## User
+
+Check the status
+
+---
+
+<sub>1s</sub>
+
+## System
+
+MCP server "es chat" requires sign-in.
+
+---
+
+<sub>2s</sub>
+
+## Copilot
+
+I’ll continue after sign-in.`);
+
+    expect(transcript.events).toHaveLength(3);
+    expect(transcript.events[0]).toMatchObject({
+      kind: "message",
+      rawContent: "Check the status",
+    });
+    expect(transcript.events[1]).toMatchObject({
+      kind: "system",
+      rawContent: 'MCP server "es chat" requires sign-in.',
+    });
+    expect(createPlaybackSteps(transcript.events, true).map((step) => step.kind)).toEqual([
+      "message",
+      "system",
+      "message",
+    ]);
+  });
+
   it("parses skill loads and splits questions from their selected answers", () => {
     const transcript = parseTranscript(`Special tools
 
@@ -226,5 +269,24 @@ describe.skipIf(!interactiveSample)("interactive tool transcript", () => {
         answer: "Yes, continue with this repository (Recommended)",
       }),
     );
+  });
+});
+
+const systemSample = process.env.SYSTEM_SAMPLE_TRANSCRIPT;
+
+describe.skipIf(!systemSample)("system message transcript", () => {
+  it("parses the provided system notice independently from user content", () => {
+    const transcript = parseTranscript(readFileSync(systemSample!, "utf8"), "elm-migration-full.md");
+    const systemEvents = transcript.events.filter((event) => event.kind === "system");
+
+    expect(systemEvents).toHaveLength(1);
+    expect(systemEvents[0]).toMatchObject({
+      rawContent: 'MCP server "es chat" requires sign-in.',
+    });
+    expect(
+      transcript.events.find(
+        (event) => event.kind === "message" && event.rawContent === "Check the status",
+      ),
+    ).toBeDefined();
   });
 });

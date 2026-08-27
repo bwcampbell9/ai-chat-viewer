@@ -28,6 +28,10 @@ export interface MessageEvent extends BaseEvent {
   role: MessageRole;
 }
 
+export interface SystemEvent extends BaseEvent {
+  kind: "system";
+}
+
 export interface ToolPayload {
   language: string;
   content: string;
@@ -55,7 +59,7 @@ export interface AskUserEvent extends BaseEvent {
   status: string;
 }
 
-export type SessionEvent = MessageEvent | ToolEvent | SkillEvent | AskUserEvent;
+export type SessionEvent = MessageEvent | SystemEvent | ToolEvent | SkillEvent | AskUserEvent;
 
 export interface Transcript {
   title: string;
@@ -82,6 +86,12 @@ export interface SkillPlaybackStep {
   event: SkillEvent;
 }
 
+export interface SystemPlaybackStep {
+  id: string;
+  kind: "system";
+  event: SystemEvent;
+}
+
 export interface AskUserQuestionPlaybackStep {
   id: string;
   kind: "question";
@@ -98,11 +108,13 @@ export type PlaybackStep =
   | MessagePlaybackStep
   | ToolPlaybackStep
   | SkillPlaybackStep
+  | SystemPlaybackStep
   | AskUserQuestionPlaybackStep
   | AskUserAnswerPlaybackStep;
 
 export interface ViewerSettings {
   showTools: boolean;
+  showSystemMessages: boolean;
   collapseTools: boolean;
   userAnimation: AnimationMode;
   copilotAnimation: AnimationMode;

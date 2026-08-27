@@ -790,6 +790,30 @@ a {
   white-space: nowrap;
 }
 
+.system-entry {
+  min-height: 32px;
+  grid-template-columns: 22px auto minmax(0, 1fr) auto;
+  align-items: start;
+  margin: 14px 0;
+  padding: 5px 6px 5px 0;
+  border-radius: 0.625rem;
+}
+
+.system-entry .activity-icon,
+.system-entry .activity-label,
+.system-entry .tool-time {
+  padding-top: 2px;
+}
+
+.system-entry .activity-meta {
+  min-width: 0;
+  color: var(--cp-text-soft);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 .ask-user-entry {
   width: min(82%, 760px);
   margin: 20px 0 24px;
@@ -987,12 +1011,14 @@ a {
 }
 
 .tool-group.shimmer-entry,
-.skill-entry.shimmer-entry {
+.skill-entry.shimmer-entry,
+.system-entry.shimmer-entry {
   overflow: hidden;
 }
 
 .tool-group.shimmer-entry > summary,
-.skill-entry.shimmer-entry {
+.skill-entry.shimmer-entry,
+.system-entry.shimmer-entry {
   -webkit-mask-image: linear-gradient(
     90deg,
     var(--cp-panel-strong) 0%,

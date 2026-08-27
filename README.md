@@ -12,6 +12,7 @@ demos.
 - Auto-play a session with each step delay beginning after its reveal animation finishes.
 - Configure AI-response autoplay around user turns, including recorded question answers.
 - Hide tool calls entirely or group consecutive calls into a compact `X tools called` activity.
+- Show system notices as compact AI-side activity or hide them independently.
 - Replay skill loads and `ask_user` prompts with dedicated selected-choice and free-form answer UI.
 - Configure user, Copilot, and tool-call animations with independent typing, shimmer, and fade
   speeds.
@@ -30,7 +31,8 @@ shortcuts are ignored while editing a field.
 
 ## Supported export format
 
-The parser reads GitHub Copilot session exports with elapsed timestamps and event headings:
+The parser reads GitHub Copilot session exports with elapsed timestamps and User, Copilot, System,
+and Tool event headings:
 
 ````markdown
 <sub>0s</sub>

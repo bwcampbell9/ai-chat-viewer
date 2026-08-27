@@ -3,13 +3,14 @@ import type {
   PlaybackStep,
   SessionEvent,
   SkillEvent,
+  SystemEvent,
   ToolEvent,
   ToolPayload,
   Transcript,
   TranscriptMetadata,
 } from "./types";
 
-const EVENT_HEADING = /^##\s+(User|Copilot|Tool:\s+.+)$/;
+const EVENT_HEADING = /^##\s+(User|Copilot|System|Tool:\s+.+)$/;
 const ELAPSED_LINE = /^<sub>(.*?)<\/sub>$/;
 
 export class TranscriptParseError extends Error {
@@ -241,6 +242,13 @@ function parseEventBlock(block: string, index: number): SessionEvent | undefined
     };
   }
 
+  if (heading === "## System") {
+    return {
+      ...base,
+      kind: "system",
+    } satisfies SystemEvent;
+  }
+
   const toolMatch = heading.match(/^## Tool:\s+(.+?)\s+-\s+(.+)$/);
   if (!toolMatch) {
     return undefined;
@@ -296,7 +304,7 @@ export function parseTranscript(markdown: string, sourceName = "Pasted session")
 
   if (!events.length) {
     throw new TranscriptParseError(
-      "No Copilot chat turns were found. Use a session export with <sub> timestamps and User, Copilot, or Tool headings.",
+      "No Copilot chat turns were found. Use a session export with <sub> timestamps and User, Copilot, System, or Tool headings.",
     );
   }
 
@@ -324,6 +332,11 @@ export function createPlaybackSteps(
 
     if (event.kind === "skill") {
       steps.push({ id: `skill-${event.id}`, kind: "skill", event });
+      continue;
+    }
+
+    if (event.kind === "system") {
+      steps.push({ id: `system-${event.id}`, kind: "system", event });
       continue;
     }
 

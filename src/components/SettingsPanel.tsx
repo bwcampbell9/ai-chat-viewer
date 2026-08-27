@@ -53,11 +53,12 @@ export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProp
 
   const usesTypewriter =
     settings.userAnimation === "typewriter" || settings.copilotAnimation === "typewriter";
-  const usesShimmer = settings.showTools && settings.toolAnimation === "shimmer";
+  const showsActivity = settings.showTools || settings.showSystemMessages;
+  const usesShimmer = showsActivity && settings.toolAnimation === "shimmer";
   const usesFade =
     settings.userAnimation === "fade" ||
     settings.copilotAnimation === "fade" ||
-    (settings.showTools && settings.toolAnimation === "fade");
+    (showsActivity && settings.toolAnimation === "fade");
 
   return (
     <div className="settings-layer" role="presentation" onMouseDown={onClose}>
@@ -79,8 +80,8 @@ export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProp
         <div className="settings-content">
           <section className="setting-section">
             <div className="setting-heading">
-              <span>Tool calls</span>
-              <small>Choose whether tool activity appears in the replay.</small>
+              <span>Activity</span>
+              <small>Choose which runtime activity appears in the replay.</small>
             </div>
             <label className="switch-row">
               <span>
@@ -109,6 +110,23 @@ export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProp
                 disabled={!settings.showTools}
                 aria-checked={settings.collapseTools}
                 onClick={() => patchSettings({ collapseTools: !settings.collapseTools })}
+              >
+                <span />
+              </button>
+            </label>
+            <label className="switch-row">
+              <span>
+                <strong>Show system messages</strong>
+                <small>Include notices emitted by the Copilot runtime.</small>
+              </span>
+              <button
+                className={`switch ${settings.showSystemMessages ? "on" : ""}`}
+                type="button"
+                role="switch"
+                aria-checked={settings.showSystemMessages}
+                onClick={() =>
+                  patchSettings({ showSystemMessages: !settings.showSystemMessages })
+                }
               >
                 <span />
               </button>
@@ -150,10 +168,10 @@ export function SettingsPanel({ settings, onChange, onClose }: SettingsPanelProp
                 ))}
               </select>
             </label>
-            <label className={`select-row ${settings.showTools ? "" : "disabled"}`}>
-              <span>Tool calls</span>
+            <label className={`select-row ${showsActivity ? "" : "disabled"}`}>
+              <span>Activity</span>
               <select
-                disabled={!settings.showTools}
+                disabled={!showsActivity}
                 value={settings.toolAnimation}
                 onChange={(event) =>
                   patchSettings({ toolAnimation: event.target.value as ToolAnimationMode })

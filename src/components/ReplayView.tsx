@@ -6,6 +6,7 @@ import {
   Circle,
   CircleHelp,
   FileText,
+  Info,
   LockKeyhole,
   Pause,
   PanelBottomClose,
@@ -43,6 +44,7 @@ import type {
   AskUserEvent,
   PlaybackStep,
   SkillEvent,
+  SystemEvent,
   ToolEvent,
   ToolAnimationMode,
   ToolPayload,
@@ -87,7 +89,7 @@ function isUserTurnStep(step?: PlaybackStep): boolean {
 }
 
 function hasCssStepAnimation(step: PlaybackStep, settings: ViewerSettings): boolean {
-  if (step.kind === "tools" || step.kind === "skill") {
+  if (step.kind === "tools" || step.kind === "skill" || step.kind === "system") {
     return settings.toolAnimation !== "none";
   }
   if (step.kind === "question") {
@@ -247,6 +249,30 @@ function SkillEntry({
   );
 }
 
+function SystemEntry({
+  event,
+  animation,
+  isLatest,
+}: {
+  event: SystemEvent;
+  animation: ToolAnimationMode;
+  isLatest: boolean;
+}) {
+  return (
+    <aside
+      className={`activity-entry system-entry ${toolAnimationClass(isLatest, animation)}`.trim()}
+      aria-label="System message"
+    >
+      <span className="activity-icon neutral">
+        <Info size={15} />
+      </span>
+      <span className="activity-label">System</span>
+      <div className="activity-meta">{event.rawContent}</div>
+      <span className="tool-time">{event.elapsedLabel}</span>
+    </aside>
+  );
+}
+
 function AskUserEntry({
   event,
   answered,
@@ -376,10 +402,16 @@ export function ReplayView({
 }: ReplayViewProps) {
   const playbackEvents = useMemo(
     () =>
-      settings.showTools
-        ? transcript.events
-        : transcript.events.filter((event) => event.kind === "message"),
-    [settings.showTools, transcript.events],
+      transcript.events.filter((event) => {
+        if (event.kind === "message") {
+          return true;
+        }
+        if (event.kind === "system") {
+          return settings.showSystemMessages;
+        }
+        return settings.showTools;
+      }),
+    [settings.showSystemMessages, settings.showTools, transcript.events],
   );
   const steps = useMemo(
     () => createPlaybackSteps(playbackEvents, settings.collapseTools),
@@ -407,7 +439,11 @@ export function ReplayView({
     () => transcript.events.filter((event) => event.kind === "message").length,
     [transcript.events],
   );
-  const toolCount = transcript.events.length - turnCount;
+  const systemCount = useMemo(
+    () => transcript.events.filter((event) => event.kind === "system").length,
+    [transcript.events],
+  );
+  const toolCount = transcript.events.length - turnCount - systemCount;
   const lastVisibleStep = previousStepsRef.current[cursor - 1];
   const lastVisibleStepId = lastVisibleStep?.id;
   const lastVisibleIndex = lastEventIndex(lastVisibleStep);
@@ -776,6 +812,11 @@ export function ReplayView({
             <p>
               {turnCount} messages
               {settings.showTools ? ` · ${toolCount} tool calls` : " · tool calls hidden"}
+              {systemCount
+                ? settings.showSystemMessages
+                  ? ` · ${systemCount} system ${systemCount === 1 ? "message" : "messages"}`
+                  : " · system messages hidden"
+                : ""}
               {transcript.metadata.duration ? ` · ${transcript.metadata.duration}` : ""}
             </p>
           </div>
@@ -837,6 +878,17 @@ export function ReplayView({
               if (step.kind === "skill") {
                 return (
                   <SkillEntry
+                    key={step.id}
+                    event={step.event}
+                    animation={settings.toolAnimation}
+                    isLatest={latestStep?.id === step.id}
+                  />
+                );
+              }
+
+              if (step.kind === "system") {
+                return (
+                  <SystemEntry
                     key={step.id}
                     event={step.event}
                     animation={settings.toolAnimation}

@@ -14,6 +14,7 @@ const SETTINGS_KEY = "copilot-chat-replay:settings";
 
 const defaultSettings: ViewerSettings = {
   showTools: true,
+  showSystemMessages: true,
   collapseTools: true,
   userAnimation: "fade",
   copilotAnimation: "typewriter",
